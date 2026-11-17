@@ -1,0 +1,37 @@
+name: datalab137
+region: nyc
+
+services:
+  - name: web
+    dockerfile_path: Dockerfile
+    github:
+      repo: Lemuel137/datalab-137
+      branch: main
+      deploy_on_push: true
+    instance_size_slug: basic-xxs
+    instance_count: 1
+    http_port: 3000
+    health_check:
+      http_path: /login
+      initial_delay_seconds: 20
+      period_seconds: 30
+      timeout_seconds: 5
+      failure_threshold: 3
+    envs:
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        type: SECRET
+        value: ${datalab137-db.DATABASE_URL}
+      - key: SESSION_SECRET
+        scope: RUN_TIME
+        type: SECRET
+      - key: APP_PASSWORD
+        scope: RUN_TIME
+        type: SECRET
+
+databases:
+  - name: datalab137-db
+    engine: PG
+    version: "17"
+    production: false
+    size: db-s-dev-database
