@@ -40,9 +40,17 @@ const ORDER: Record<Stage, number> = {
   descartado: 0,
 };
 
+export function nextStages(from: Stage): Stage[] {
+  return STAGES.filter(
+    (to) => canAdvance(from, to) && (to === "descartado" || ORDER[to] === ORDER[from] + 1),
+  );
+}
+
 export function canAdvance(from: Stage, to: Stage): boolean {
+  if (from === to) return false;
   if (to === "descartado") return true;
   if (from === "descartado") return to === "qualificado" || to === "importado";
+  if (from === "fechado") return false;
   return ORDER[to] === ORDER[from] + 1;
 }
 

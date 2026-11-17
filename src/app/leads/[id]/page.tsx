@@ -5,6 +5,9 @@ import { db } from "@/db/client";
 import { fronts, findings, leads } from "@/db/schema";
 import { STAGE_LABEL, requiresFinding, type Stage } from "@/contracts/funnel";
 import { FindingForm } from "./finding-form";
+import { StageButtons, ContactForm, ReplyForm } from "./journey-forms";
+import { contactHistory } from "@/domains/leads/journey";
+import type { Channel } from "@/contracts/funnel";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -20,6 +23,14 @@ export default async function LeadPage({ params }: Props) {
     .from(findings)
     .where(eq(findings.leadId, id))
     .orderBy(desc(findings.verifiedAt));
+
+  const historico = await contactHistory(id);
+  const canal: Channel =
+    front && ["instagram", "whatsapp", "email", "indicacao"].includes(front.channel)
+      ? (front.channel as Channel)
+      : "instagram";
+  const temEnvio = historico.length > 0;
+  const temFollowUp = historico.some((c) => c.isFollowUp);
 
   const signals = Object.entries(lead.signals ?? {}).filter(
     ([, v]) => v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0),
@@ -79,6 +90,54 @@ export default async function LeadPage({ params }: Props) {
             </ul>
           )}
         </div>
+      </section>
+
+      <section className="border border-zinc-300 p-4">
+        <h2 className="mb-3 text-lg font-medium">Estado</h2>
+        <p className="mb-3 text-sm">
+          Etapa atual: <b>{STAGE_LABEL[lead.stage as Stage] ?? lead.stage}</b>
+        </p>
+        <StageButtons leadId={lead.id} current={lead.stage as Stage} />
+      </section>
+
+      <section>
+        <h2 className="mb-1 text-lg font-medium">Contatos</h2>
+        <p className="mb-3 text-sm text-zinc-500">
+          Um envio e um follow-up único. Depois disso, não insistir.
+        </p>
+
+        {historico.length === 0 ? (
+          <p className="mb-4 text-sm text-zinc-500">Nenhum envio registrado.</p>
+        ) : (
+          <ul className="mb-4 flex flex-col gap-2">
+            {historico.map((c) => (
+              <li key={c.id} className="border border-zinc-200 p-3 text-sm">
+                <p className="text-xs uppercase tracking-wide text-zinc-500">
+                  {c.channel} · {c.isFollowUp ? "follow-up" : "primeira mensagem"} ·{" "}
+                  {c.sentAt.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}
+                </p>
+                <p className="mt-1 whitespace-pre-wrap">{c.message}</p>
+                {c.repliedAt ? (
+                  <p className="mt-1 text-xs text-emerald-700">
+                    resposta: {c.replyKind} em{" "}
+                    {c.repliedAt.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}
+                  </p>
+                ) : (
+                  <ReplyForm leadId={lead.id} contactId={c.id} />
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {(lead.stage === "aprovado" || lead.stage === "contatado") && (
+          <ContactForm
+            leadId={lead.id}
+            canal={canal}
+            temEnvio={temEnvio}
+            temFollowUp={temFollowUp}
+          />
+        )}
       </section>
 
       <section>
