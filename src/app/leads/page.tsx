@@ -37,6 +37,7 @@ export default async function LeadsPage() {
                 <th className="py-2">instagram</th>
                 <th className="py-2">site</th>
                 <th className="py-2">etapa</th>
+                <th className="py-2"></th>
               </tr>
             </thead>
             <tbody>
@@ -46,6 +47,11 @@ export default async function LeadsPage() {
                   <td className="py-2 text-zinc-600">{l.instagram ?? "—"}</td>
                   <td className="py-2 text-zinc-600">{l.site ?? "—"}</td>
                   <td className="py-2">{STAGE_LABEL[l.stage as Stage] ?? l.stage}</td>
+                  <td className="py-2 text-right">
+                    <Link href={`/leads/${l.id}`} className="underline">
+                      abrir
+                    </Link>
+                  </td>
                 </tr>
               ))}
             </tbody>
