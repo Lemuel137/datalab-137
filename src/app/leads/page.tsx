@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { desc } from "drizzle-orm";
+import { sessaoAtual } from "@/domains/auth/session";
 import { db } from "@/db/client";
 import { fronts, leads } from "@/db/schema";
 import { STAGE_LABEL, type Stage } from "@/contracts/funnel";
@@ -8,6 +10,7 @@ import { ImportForm } from "./import-form";
 export const dynamic = "force-dynamic";
 
 export default async function LeadsPage() {
+  if (!(await sessaoAtual())) redirect("/login");
   const frontList = await db.select().from(fronts).orderBy(fronts.name);
   const rows = await db.select().from(leads).orderBy(desc(leads.createdAt)).limit(50);
 

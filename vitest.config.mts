@@ -9,6 +9,9 @@ export default defineConfig({
     include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
   },
   resolve: {
-    alias: { "@": path.resolve(import.meta.dirname, "./src") },
+    alias: {
+      "@": path.resolve(import.meta.dirname, "./src"),
+      "server-only": path.resolve(import.meta.dirname, "./src/test/server-only.ts"),
+    },
   },
 });

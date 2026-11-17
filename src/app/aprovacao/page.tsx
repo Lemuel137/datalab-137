@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { eq, gte } from "drizzle-orm";
+import { sessaoAtual } from "@/domains/auth/session";
 import { db } from "@/db/client";
 import { contacts, fronts, leads } from "@/db/schema";
 import { CHANNELS } from "@/contracts/funnel";
@@ -10,6 +12,7 @@ import { ApproveForm } from "./approve-form";
 export const dynamic = "force-dynamic";
 
 export default async function AprovacaoPage() {
+  if (!(await sessaoAtual())) redirect("/login");
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 

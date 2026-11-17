@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { asc, desc, eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { fronts, findings, leads } from "@/db/schema";
 import { STAGE_LABEL, requiresFinding, type Stage } from "@/contracts/funnel";
+import { sessaoAtual } from "@/domains/auth/session";
 import { FindingForm } from "./finding-form";
 import { StageButtons, ContactForm, ReplyForm } from "./journey-forms";
 import { contactHistory } from "@/domains/leads/journey";
@@ -12,6 +13,8 @@ import type { Channel } from "@/contracts/funnel";
 type Props = { params: Promise<{ id: string }> };
 
 export default async function LeadPage({ params }: Props) {
+  const sessao = await sessaoAtual();
+  if (!sessao) redirect("/login");
   const { id } = await params;
 
   const [lead] = await db.select().from(leads).where(eq(leads.id, id)).limit(1);

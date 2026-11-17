@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { count } from "drizzle-orm";
 import { db } from "@/db/client";
+import { sair } from "./login/actions";
 import { fronts, leads } from "@/db/schema";
 
 export const dynamic = "force-dynamic";
@@ -34,6 +35,11 @@ export default async function Home() {
         <Link href="/aprovacao" className="underline">
           aprovação de lote
         </Link>
+        <form action={sair}>
+          <button type="submit" className="underline">
+            sair
+          </button>
+        </form>
       </nav>
     </main>
   );
