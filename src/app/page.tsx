@@ -27,9 +27,14 @@ export default async function Home() {
         </div>
       </dl>
 
-      <Link href="/leads" className="text-sm underline">
-        ir para leads
-      </Link>
+      <nav className="flex gap-4 text-sm">
+        <Link href="/leads" className="underline">
+          leads
+        </Link>
+        <Link href="/aprovacao" className="underline">
+          aprovação de lote
+        </Link>
+      </nav>
     </main>
   );
 }
