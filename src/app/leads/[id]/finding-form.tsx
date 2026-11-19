@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { addFinding } from "./actions";
+import { addFinding, reconfirm } from "./actions";
 import { FINDING_KINDS, FINDING_KIND_LABEL, type FindingFormState } from "@/contracts/finding";
 
 export function FindingForm({ leadId }: { leadId: string }) {
@@ -88,6 +88,27 @@ export function FindingForm({ leadId }: { leadId: string }) {
         <p className={`text-sm ${state.ok ? "text-emerald-700" : "text-red-700"}`}>
           {state.message}
         </p>
+      )}
+    </form>
+  );
+}
+
+export function ReconfirmButton({ findingId }: { findingId: string }) {
+  const [state, action, pending] = useActionState<FindingFormState, FormData>(reconfirm, undefined);
+  return (
+    <form action={action} className="mt-2 flex items-center gap-2">
+      <input type="hidden" name="findingId" value={findingId} />
+      <button
+        type="submit"
+        disabled={pending}
+        className="border border-zinc-900 px-2 py-0.5 text-xs"
+      >
+        reconferi hoje
+      </button>
+      {state && (
+        <span className={`text-xs ${state.ok ? "text-emerald-700" : "text-red-700"}`}>
+          {state.message}
+        </span>
       )}
     </form>
   );

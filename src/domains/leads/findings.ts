@@ -1,4 +1,5 @@
 import "server-only";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { findings } from "@/db/schema";
 import { capConfidence, findingFormSchema } from "@/contracts/finding";
@@ -20,4 +21,19 @@ export async function createFinding(input: unknown) {
   });
 
   return { ok: true as const, message: "Achado registrado." };
+}
+
+/**
+ * Marca que o achado foi conferido de novo no navegador agora.
+ * Só vale para achado conferido: medição de script é refeita pelo script.
+ */
+export async function reconfirmFinding(findingId: string, now = new Date()) {
+  const rows = await db
+    .update(findings)
+    .set({ verifiedAt: now })
+    .where(and(eq(findings.id, findingId), eq(findings.origin, "conferido")))
+    .returning({ leadId: findings.leadId });
+  return rows.length
+    ? { ok: true as const, message: "Achado reconferido hoje.", leadId: rows[0].leadId }
+    : { ok: false as const, message: "Achado não encontrado ou medido por script." };
 }

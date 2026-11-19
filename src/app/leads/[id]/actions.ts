@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createFinding } from "@/domains/leads/findings";
+import { createFinding, reconfirmFinding } from "@/domains/leads/findings";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db/client";
@@ -59,4 +59,18 @@ export async function setMetrics(
 
   revalidatePath(`/leads/${parsed.data.leadId}`);
   return { ok: true, message: "Medição salva." };
+}
+
+export async function reconfirm(
+  _prev: FindingFormState,
+  formData: FormData,
+): Promise<FindingFormState> {
+  const id = z.uuid().safeParse(formData.get("findingId"));
+  if (!id.success) return { ok: false, message: "Achado inválido." };
+  const r = await reconfirmFinding(id.data);
+  if (r.ok) {
+    revalidatePath(`/leads/${r.leadId}`);
+    revalidatePath("/fila");
+  }
+  return { ok: r.ok, message: r.message };
 }

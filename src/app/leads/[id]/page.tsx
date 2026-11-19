@@ -5,7 +5,7 @@ import { db } from "@/db/client";
 import { fronts, findings, leads } from "@/db/schema";
 import { STAGE_LABEL, requiresFinding, type Stage } from "@/contracts/funnel";
 import { sessaoAtual } from "@/domains/auth/session";
-import { FindingForm } from "./finding-form";
+import { FindingForm, ReconfirmButton } from "./finding-form";
 import { MetricsForm } from "./metrics-form";
 import { checkEngagement } from "@/contracts/engagement";
 import { FINDING_KIND_LABEL, type FindingKind } from "@/contracts/finding";
@@ -199,6 +199,7 @@ export default async function LeadPage({ params }: Props) {
                     {f.evidenceUrl}
                   </a>
                 </p>
+                {f.origin === "conferido" && <ReconfirmButton findingId={f.id} />}
               </li>
             ))}
           </ul>

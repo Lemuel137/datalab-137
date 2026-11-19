@@ -36,7 +36,9 @@ describe("replyDate", () => {
 
 describe("matchKey", () => {
   it("casa pelo Instagram sem @ e em minúsculas", () => {
-    expect(matchKey({ nome: "X", instagram: "@Clinica.Ros" })).toEqual({ instagram: "clinica.ros" });
+    expect(matchKey({ nome: "X", instagram: "@Clinica.Ros" })).toEqual({
+      instagram: "clinica.ros",
+    });
   });
   it("sem Instagram, casa pelo nome", () => {
     expect(matchKey({ nome: " CCM Pedidos " })).toEqual({ name: "ccm pedidos" });

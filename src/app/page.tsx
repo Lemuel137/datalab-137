@@ -35,6 +35,9 @@ export default async function Home() {
         <Link href="/leads" className="underline">
           leads
         </Link>
+        <Link href="/frentes" className="underline">
+          frentes
+        </Link>
         <form action={sair}>
           <button type="submit" className="underline">
             sair
