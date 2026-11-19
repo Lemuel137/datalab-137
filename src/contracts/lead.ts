@@ -4,6 +4,13 @@ import { CHANNELS, STAGES } from "@/contracts/funnel";
 const opt = (s: z.ZodString) =>
   z.preprocess((v) => (typeof v === "string" && v.trim() === "" ? undefined : v), s.optional());
 
+// Célula vazia vira "não medido", não zero: zero reprovaria o lead por engajamento zerado.
+const optNum = (s: z.ZodNumber) =>
+  z.preprocess(
+    (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+    z.coerce.number().pipe(s).optional(),
+  );
+
 export const leadRowSchema = z.object({
   nome: z.string().min(1),
   categoria: opt(z.string()),
@@ -19,6 +26,8 @@ export const leadRowSchema = z.object({
   maps: opt(z.string()),
   endereco: opt(z.string()),
   unidades: opt(z.string()),
+  seguidores: optNum(z.number().int().nonnegative()),
+  engajamento_pct: optNum(z.number().nonnegative()),
 });
 
 export const dossierSchema = z.object({

@@ -6,6 +6,9 @@ import { fronts, findings, leads } from "@/db/schema";
 import { STAGE_LABEL, requiresFinding, type Stage } from "@/contracts/funnel";
 import { sessaoAtual } from "@/domains/auth/session";
 import { FindingForm } from "./finding-form";
+import { MetricsForm } from "./metrics-form";
+import { checkEngagement } from "@/contracts/engagement";
+import { FINDING_KIND_LABEL, type FindingKind } from "@/contracts/finding";
 import { StageButtons, ContactForm, ReplyForm } from "./journey-forms";
 import { contactHistory } from "@/domains/leads/journey";
 import type { Channel } from "@/contracts/funnel";
@@ -39,7 +42,16 @@ export default async function LeadPage({ params }: Props) {
     ([, v]) => v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0),
   );
 
-  const bloqueado = requiresFinding(lead.stage as Stage) && list.length === 0;
+  const bloqueado =
+    requiresFinding(lead.stage as Stage) && !list.some((f) => f.origin === "conferido");
+
+  const engajamento = front?.usesEngagement
+    ? checkEngagement({
+        followers: lead.followers,
+        engagement: lead.engagementPct,
+        frontMin: front.engagementMin,
+      })
+    : null;
 
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-10">
@@ -68,6 +80,15 @@ export default async function LeadPage({ params }: Props) {
           </dd>
           <dt className="text-zinc-500">instagram</dt>
           <dd>{lead.instagram ? `@${lead.instagram}` : "—"}</dd>
+          <dt className="text-zinc-500">seguidores</dt>
+          <dd>{lead.followers?.toLocaleString("pt-BR") ?? "—"}</dd>
+          <dt className="text-zinc-500">engajamento</dt>
+          <dd>
+            {lead.engagementPct != null ? `${lead.engagementPct}%` : "—"}
+            {engajamento && !engajamento.ok ? ` · ${engajamento.message}` : ""}
+            {engajamento?.ok ? ` · acima do piso de ${engajamento.floor}%` : ""}
+            {front && !front.usesEngagement ? " · esta frente não usa engajamento" : ""}
+          </dd>
           <dt className="text-zinc-500">site</dt>
           <dd className="truncate">{lead.site ?? "—"}</dd>
           <dt className="text-zinc-500">telefone</dt>
@@ -101,6 +122,13 @@ export default async function LeadPage({ params }: Props) {
           Etapa atual: <b>{STAGE_LABEL[lead.stage as Stage] ?? lead.stage}</b>
         </p>
         <StageButtons leadId={lead.id} current={lead.stage as Stage} />
+        <div className="mt-4 border-t border-zinc-200 pt-4">
+          <MetricsForm
+            leadId={lead.id}
+            followers={lead.followers}
+            engagementPct={lead.engagementPct}
+          />
+        </div>
       </section>
 
       <section>
@@ -163,6 +191,8 @@ export default async function LeadPage({ params }: Props) {
               <li key={f.id} className="border border-zinc-200 p-3 text-sm">
                 <p>{f.summary}</p>
                 <p className="mt-1 text-xs text-zinc-500">
+                  {FINDING_KIND_LABEL[f.kind as FindingKind] ?? f.kind} ·{" "}
+                  {f.origin === "script" ? "medido por script" : "conferido no navegador"} ·
                   confiança {f.confidence} · verificado em{" "}
                   {f.verifiedAt.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })} ·{" "}
                   <a href={f.evidenceUrl} className="underline" target="_blank" rel="noreferrer">

@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "@/db/client";
 import { findings } from "@/db/schema";
-import { findingFormSchema } from "@/contracts/finding";
+import { capConfidence, findingFormSchema } from "@/contracts/finding";
 
 export async function createFinding(input: unknown) {
   const parsed = findingFormSchema.safeParse(input);
@@ -14,7 +14,9 @@ export async function createFinding(input: unknown) {
     summary: parsed.data.summary,
     evidenceUrl: parsed.data.evidenceUrl,
     verifiedAt: new Date(),
-    confidence: parsed.data.confidence,
+    confidence: capConfidence(parsed.data.origin, parsed.data.confidence),
+    kind: parsed.data.kind,
+    origin: parsed.data.origin,
   });
 
   return { ok: true as const, message: "Achado registrado." };

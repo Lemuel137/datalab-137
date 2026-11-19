@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { addFinding } from "./actions";
-import type { FindingFormState } from "@/contracts/finding";
+import { FINDING_KINDS, FINDING_KIND_LABEL, type FindingFormState } from "@/contracts/finding";
 
 export function FindingForm({ leadId }: { leadId: string }) {
   const [state, action, pending] = useActionState<FindingFormState, FormData>(
@@ -47,6 +47,31 @@ export function FindingForm({ leadId }: { leadId: string }) {
             <option value="alta">alta</option>
             <option value="media">média</option>
             <option value="baixa">baixa</option>
+          </select>
+        </label>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="flex flex-col gap-1 text-sm">
+          Tipo
+          <select name="kind" defaultValue="outro" className="border border-zinc-300 p-2 text-sm">
+            {FINDING_KINDS.map((k) => (
+              <option key={k} value={k}>
+                {FINDING_KIND_LABEL[k]}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-sm">
+          Origem
+          <select
+            name="origin"
+            defaultValue="conferido"
+            className="border border-zinc-300 p-2 text-sm"
+          >
+            <option value="conferido">conferido no navegador</option>
+            <option value="script">medido por script</option>
           </select>
         </label>
       </div>

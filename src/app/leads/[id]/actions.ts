@@ -2,6 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { createFinding } from "@/domains/leads/findings";
+import { eq } from "drizzle-orm";
+import { z } from "zod";
+import { db } from "@/db/client";
+import { leads } from "@/db/schema";
 import type { FindingFormState } from "@/contracts/finding";
 
 export async function addFinding(
@@ -13,8 +17,46 @@ export async function addFinding(
     summary: formData.get("summary"),
     evidenceUrl: formData.get("evidenceUrl"),
     confidence: formData.get("confidence"),
+    kind: formData.get("kind") ?? undefined,
+    origin: formData.get("origin") ?? undefined,
   });
 
   if (result.ok) revalidatePath(`/leads/${String(formData.get("leadId"))}`);
   return result;
+}
+
+const blank = (v: unknown) => (typeof v === "string" && v.trim() === "" ? null : v);
+
+const metricsSchema = z.object({
+  leadId: z.uuid(),
+  followers: z.preprocess(blank, z.coerce.number().int().nonnegative().nullable()),
+  // Aceita vírgula decimal, como o Lemuel digita.
+  engagementPct: z.preprocess(
+    (v) => blank(typeof v === "string" ? v.replace(",", ".") : v),
+    z.coerce.number().min(0).max(100).nullable(),
+  ),
+});
+
+export async function setMetrics(
+  _prev: FindingFormState,
+  formData: FormData,
+): Promise<FindingFormState> {
+  const parsed = metricsSchema.safeParse({
+    leadId: formData.get("leadId"),
+    followers: formData.get("followers"),
+    engagementPct: formData.get("engagementPct"),
+  });
+  if (!parsed.success) return { ok: false, message: "Seguidores ou engajamento inválido." };
+
+  await db
+    .update(leads)
+    .set({
+      followers: parsed.data.followers,
+      engagementPct: parsed.data.engagementPct,
+      updatedAt: new Date(),
+    })
+    .where(eq(leads.id, parsed.data.leadId));
+
+  revalidatePath(`/leads/${parsed.data.leadId}`);
+  return { ok: true, message: "Medição salva." };
 }

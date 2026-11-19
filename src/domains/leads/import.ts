@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { fronts, leads } from "@/db/schema";
 import { dossierSchema, leadRowSchema } from "@/contracts/lead";
-import { parseCsv } from "@/domains/leads/normalize";
+import { normalizeInstagram, parseCsv } from "@/domains/leads/normalize";
 import { dedupe, isDuplicate } from "@/domains/leads/dedupe";
 
 export type ImportState = { ok: boolean; message: string };
@@ -52,6 +52,8 @@ export async function importLeads(
         whatsapp: l.whatsapp,
         rating: l.rating,
         reviewCount: l.reviewCount,
+        followers: l.followers,
+        engagementPct: l.engagementPct,
         source: format,
         signals: l.signals,
       })),
@@ -74,6 +76,8 @@ type MappedLead = {
   whatsapp?: string;
   rating?: string;
   reviewCount?: number;
+  followers?: number;
+  engagementPct?: number;
   signals: Record<string, unknown>;
 };
 
@@ -88,11 +92,13 @@ function mapCsv(raw: string): MappedLead[] {
       name: d.nome,
       category: d.categoria,
       site: d.site,
-      instagram: d.instagram,
+      instagram: normalizeInstagram(d.instagram) ?? undefined,
       phone: d.telefone,
       whatsapp: d.whatsapp,
       rating: d.nota,
       reviewCount: d.n_avaliacoes,
+      followers: d.seguidores,
+      engagementPct: d.engajamento_pct,
       signals: {
         google_ads: d.google_ads,
         pixel_meta: d.pixel_meta,

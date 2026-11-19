@@ -1,16 +1,18 @@
 import "server-only";
 import { and, desc, eq, gte } from "drizzle-orm";
 import { db } from "@/db/client";
-import { contacts, findings, leads } from "@/db/schema";
+import { contacts, findings, fronts, leads } from "@/db/schema";
+import { checkEngagement } from "@/contracts/engagement";
 import { canAdvance, requiresFinding, type Channel, type Stage } from "@/contracts/funnel";
 
 export type ActionResult = { ok: boolean; message: string };
 
+// Só achado conferido no navegador libera abordagem; achado de script não basta.
 async function hasFinding(leadId: string): Promise<boolean> {
   const [row] = await db
     .select({ id: findings.id })
     .from(findings)
-    .where(eq(findings.leadId, leadId))
+    .where(and(eq(findings.leadId, leadId), eq(findings.origin, "conferido")))
     .limit(1);
   return Boolean(row);
 }
@@ -23,8 +25,23 @@ export async function changeStage(leadId: string, to: Stage): Promise<ActionResu
     return { ok: false, message: `Não é possível ir de "${lead.stage}" para "${to}".` };
   }
 
+  if (to === "qualificado") {
+    const [front] = await db.select().from(fronts).where(eq(fronts.id, lead.frontId)).limit(1);
+    if (front?.usesEngagement) {
+      const v = checkEngagement({
+        followers: lead.followers,
+        engagement: lead.engagementPct,
+        frontMin: front.engagementMin,
+      });
+      if (!v.ok) return { ok: false, message: v.message };
+    }
+  }
+
   if (requiresFinding(to) && !(await hasFinding(leadId))) {
-    return { ok: false, message: "Registre ao menos um achado verificado antes desta etapa." };
+    return {
+      ok: false,
+      message: "Registre ao menos um achado conferido no navegador antes desta etapa.",
+    };
   }
 
   await db.update(leads).set({ stage: to, updatedAt: new Date() }).where(eq(leads.id, leadId));

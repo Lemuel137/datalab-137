@@ -4,6 +4,7 @@ import {
   text,
   timestamp,
   integer,
+  real,
   boolean,
   jsonb,
   index,
@@ -16,6 +17,10 @@ export const fronts = pgTable("fronts", {
   channel: text("channel").notNull(),
   dailyLimit: integer("daily_limit").notNull().default(15),
   active: boolean("active").notNull().default(true),
+  // Piso de engajamento da frente, em %. null = régua por tamanho do perfil.
+  engagementMin: real("engagement_min"),
+  // false para frentes em que o Instagram não é o canal (parcerias, ar-condicionado).
+  usesEngagement: boolean("uses_engagement").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -35,6 +40,8 @@ export const leads = pgTable(
     whatsapp: text("whatsapp"),
     rating: text("rating"),
     reviewCount: integer("review_count"),
+    followers: integer("followers"),
+    engagementPct: real("engagement_pct"),
     stage: text("stage").notNull().default("importado"),
     source: text("source").notNull().default("csv"),
     signals: jsonb("signals").$type<Record<string, unknown>>().notNull().default({}),
@@ -55,6 +62,8 @@ export const findings = pgTable(
     evidenceUrl: text("evidence_url").notNull(),
     verifiedAt: timestamp("verified_at", { withTimezone: true }).notNull(),
     confidence: text("confidence").notNull().default("media"),
+    kind: text("kind").notNull().default("outro"),
+    origin: text("origin").notNull().default("conferido"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("findings_lead_idx").on(t.leadId)],
