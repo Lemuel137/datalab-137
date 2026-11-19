@@ -29,6 +29,13 @@
       "when": 1795110563066,
       "tag": "0003_messy_wendigo",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795116576012,
+      "tag": "0004_wakeful_komodo",
+      "breakpoints": true
     }
   ]
 }
