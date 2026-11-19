@@ -35,11 +35,11 @@ O mesmo molde precisa servir depois para outros nichos e para outras empresas (o
 
 ## Caminhos considerados
 
-| Caminho | Como seria | Por que não |
-|---|---|---|
-| A. Formato "Captor" na tela de importação | sobe o `dossies.csv` a cada rodada | manual a cada rodada; o Lemuel recusou |
-| B. Converter para o CSV atual | script transforma o arquivo | dados do cardápio espremidos em `category`; retrabalho |
-| C. Script direto no banco | igual ao da carga do histórico | exige terminal e credencial do banco a cada rodada |
+| Caminho                                    | Como seria                              | Por que não                                                              |
+| ------------------------------------------ | --------------------------------------- | ------------------------------------------------------------------------ |
+| A. Formato "Captor" na tela de importação  | sobe o `dossies.csv` a cada rodada      | manual a cada rodada; o Lemuel recusou                                   |
+| B. Converter para o CSV atual              | script transforma o arquivo             | dados do cardápio espremidos em `category`; retrabalho                   |
+| C. Script direto no banco                  | igual ao da carga do histórico          | exige terminal e credencial do banco a cada rodada                       |
 | **D. Captor entrega por uma porta do CRM** | último passo do Captor envia os dossiês | **escolhido**: nada manual, e a mesma porta serve a outras fontes depois |
 
 Para a conferência do achado no delivery: **remedição por script** (escolhida pelo Lemuel) em vez de conferência manual dos 20 por manhã.
@@ -50,12 +50,12 @@ Para a conferência do achado no delivery: **remedição por script** (escolhida
 
 Campos novos em `fronts`:
 
-| Campo | Para quê | Delivery | E-commerce |
-|---|---|---|---|
-| `findingPolicy` | o que libera o envio: `script` (achado medido por script nas últimas 24 h) ou `conferido` (achado conferido no navegador hoje) | `script` | `conferido` |
-| `messageTemplate` | texto da primeira mensagem, com `{nome}` e `{achado}` | a aprovar | a aprovar |
-| `followUpTemplate` | texto do follow-up único | a aprovar | a aprovar |
-| `weeklyTarget` | leads novos por semana, escolhido de 5 em 5 na tela de frentes | a escolher | a escolher |
+| Campo              | Para quê                                                                                                                       | Delivery   | E-commerce  |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------ | ---------- | ----------- |
+| `findingPolicy`    | o que libera o envio: `script` (achado medido por script nas últimas 24 h) ou `conferido` (achado conferido no navegador hoje) | `script`   | `conferido` |
+| `messageTemplate`  | texto da primeira mensagem, com `{nome}` e `{achado}`                                                                          | a aprovar  | a aprovar   |
+| `followUpTemplate` | texto do follow-up único                                                                                                       | a aprovar  | a aprovar   |
+| `weeklyTarget`     | leads novos por semana, escolhido de 5 em 5 na tela de frentes                                                                 | a escolher | a escolher  |
 
 `channel`, `dailyLimit` e `usesEngagement` já existem. Frente nova `delivery`: WhatsApp, 20 por dia, sem trava de engajamento.
 

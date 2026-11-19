@@ -37,10 +37,12 @@
 ### Task 1: Calendário e cota do dia
 
 **Files:**
+
 - Create: `src/contracts/queue.ts`
 - Test: `src/contracts/queue.test.ts`
 
 **Interfaces:**
+
 - Produces:
   - `spDay(d: Date): string` — `YYYY-MM-DD` em America/Sao_Paulo.
   - `isBusinessDay(d: Date): boolean` — segunda a sexta em America/Sao_Paulo.
@@ -57,25 +59,62 @@ it("spDay usa Brasília, não UTC", () => {
   expect(spDay(new Date("2026-11-19T22:30:00-03:00"))).toBe("2026-11-19");
 });
 it("meta 25 na segunda dá 5", () => {
-  expect(dailyQuota({ weeklyTarget: 25, sentNewThisWeek: 0, channelRemaining: 20, now: new Date("2026-11-16T09:00:00-03:00") })).toBe(5);
+  expect(
+    dailyQuota({
+      weeklyTarget: 25,
+      sentNewThisWeek: 0,
+      channelRemaining: 20,
+      now: new Date("2026-11-16T09:00:00-03:00"),
+    }),
+  ).toBe(5);
 });
 it("segunda perdida: terça recebe 7", () => {
-  expect(dailyQuota({ weeklyTarget: 25, sentNewThisWeek: 0, channelRemaining: 20, now: new Date("2026-11-17T09:00:00-03:00") })).toBe(7);
+  expect(
+    dailyQuota({
+      weeklyTarget: 25,
+      sentNewThisWeek: 0,
+      channelRemaining: 20,
+      now: new Date("2026-11-17T09:00:00-03:00"),
+    }),
+  ).toBe(7);
 });
 it("nunca passa do que resta no canal", () => {
-  expect(dailyQuota({ weeklyTarget: 100, sentNewThisWeek: 0, channelRemaining: 4, now: QUI })).toBe(4);
+  expect(dailyQuota({ weeklyTarget: 100, sentNewThisWeek: 0, channelRemaining: 4, now: QUI })).toBe(
+    4,
+  );
 });
 it("meta batida ou meta zero dá 0", () => {
-  expect(dailyQuota({ weeklyTarget: 25, sentNewThisWeek: 25, channelRemaining: 20, now: QUI })).toBe(0);
-  expect(dailyQuota({ weeklyTarget: 0, sentNewThisWeek: 0, channelRemaining: 20, now: QUI })).toBe(0);
+  expect(
+    dailyQuota({ weeklyTarget: 25, sentNewThisWeek: 25, channelRemaining: 20, now: QUI }),
+  ).toBe(0);
+  expect(dailyQuota({ weeklyTarget: 0, sentNewThisWeek: 0, channelRemaining: 20, now: QUI })).toBe(
+    0,
+  );
 });
 it("sábado dá 0", () => {
-  expect(dailyQuota({ weeklyTarget: 25, sentNewThisWeek: 0, channelRemaining: 20, now: new Date("2026-11-21T10:00:00-03:00") })).toBe(0);
+  expect(
+    dailyQuota({
+      weeklyTarget: 25,
+      sentNewThisWeek: 0,
+      channelRemaining: 20,
+      now: new Date("2026-11-21T10:00:00-03:00"),
+    }),
+  ).toBe(0);
 });
 it("3 dias úteis pulam o fim de semana", () => {
   // sexta 13/11 → quarta 18/11 = 3 dias úteis
-  expect(businessDaysBetween(new Date("2026-11-13T16:00:00-03:00"), new Date("2026-11-18T09:00:00-03:00"))).toBe(3);
-  expect(businessDaysBetween(new Date("2026-11-13T16:00:00-03:00"), new Date("2026-11-17T09:00:00-03:00"))).toBe(2);
+  expect(
+    businessDaysBetween(
+      new Date("2026-11-13T16:00:00-03:00"),
+      new Date("2026-11-18T09:00:00-03:00"),
+    ),
+  ).toBe(3);
+  expect(
+    businessDaysBetween(
+      new Date("2026-11-13T16:00:00-03:00"),
+      new Date("2026-11-17T09:00:00-03:00"),
+    ),
+  ).toBe(2);
 });
 it("weekStart é a segunda de Brasília", () => {
   expect(weekStart(QUI).toISOString()).toBe("2026-11-16T03:00:00.000Z");
@@ -92,9 +131,11 @@ it("weekStart é a segunda de Brasília", () => {
 ### Task 2: Achado válido, texto e link
 
 **Files:**
+
 - Modify: `src/contracts/queue.ts`, `src/contracts/queue.test.ts`
 
 **Interfaces:**
+
 - Consumes: `spDay` (Task 1).
 - Produces:
   - `type FindingPolicy = "script" | "conferido"`; `FINDING_POLICIES` (array const).
@@ -113,27 +154,47 @@ it("script: vale achado de até 24h, de qualquer origem", () => {
   expect(validFinding("script", [f("script", "2026-11-18T09:00:00-03:00")], NOW)).toBeNull();
 });
 it("conferido: só achado conferido hoje", () => {
-  expect(validFinding("conferido", [f("conferido", "2026-11-19T08:00:00-03:00")], NOW)).not.toBeNull();
+  expect(
+    validFinding("conferido", [f("conferido", "2026-11-19T08:00:00-03:00")], NOW),
+  ).not.toBeNull();
   expect(validFinding("conferido", [f("conferido", "2026-11-18T20:00:00-03:00")], NOW)).toBeNull();
   expect(validFinding("conferido", [f("script", "2026-11-19T08:00:00-03:00")], NOW)).toBeNull();
 });
 it("renderMessage troca {nome} e {achado} e mantém o resto", () => {
-  expect(renderMessage("Oi, {nome}. Vi que {achado}. Faz sentido?", { nome: "Pizzaria X", achado: "43% sem foto" }))
-    .toBe("Oi, Pizzaria X. Vi que 43% sem foto. Faz sentido?");
+  expect(
+    renderMessage("Oi, {nome}. Vi que {achado}. Faz sentido?", {
+      nome: "Pizzaria X",
+      achado: "43% sem foto",
+    }),
+  ).toBe("Oi, Pizzaria X. Vi que 43% sem foto. Faz sentido?");
 });
 it("WhatsApp: dígitos, DDI 55 e texto codificado", () => {
-  expect(contactLink("whatsapp", { whatsapp: "(47) 99270-6419", phone: null, instagram: null }, "43% & mais\nlinha"))
-    .toBe("https://wa.me/5547992706419?text=43%25%20%26%20mais%0Alinha");
-  expect(contactLink("whatsapp", { whatsapp: "554792706419", phone: null, instagram: null }, "oi"))
-    .toBe("https://wa.me/554792706419?text=oi");
+  expect(
+    contactLink(
+      "whatsapp",
+      { whatsapp: "(47) 99270-6419", phone: null, instagram: null },
+      "43% & mais\nlinha",
+    ),
+  ).toBe("https://wa.me/5547992706419?text=43%25%20%26%20mais%0Alinha");
+  expect(
+    contactLink("whatsapp", { whatsapp: "554792706419", phone: null, instagram: null }, "oi"),
+  ).toBe("https://wa.me/554792706419?text=oi");
 });
 it("WhatsApp cai no telefone; número curto não gera link", () => {
-  expect(contactLink("whatsapp", { whatsapp: null, phone: "+55 11 93010-7531", instagram: null }, "oi")).toContain("wa.me/5511930107531");
-  expect(contactLink("whatsapp", { whatsapp: "9999", phone: null, instagram: null }, "oi")).toBeNull();
+  expect(
+    contactLink("whatsapp", { whatsapp: null, phone: "+55 11 93010-7531", instagram: null }, "oi"),
+  ).toContain("wa.me/5511930107531");
+  expect(
+    contactLink("whatsapp", { whatsapp: "9999", phone: null, instagram: null }, "oi"),
+  ).toBeNull();
 });
 it("Instagram: link da conversa, sem texto", () => {
-  expect(contactLink("instagram", { whatsapp: null, phone: null, instagram: "lojahaja_amor" }, "oi")).toBe("https://ig.me/m/lojahaja_amor");
-  expect(contactLink("instagram", { whatsapp: null, phone: null, instagram: null }, "oi")).toBeNull();
+  expect(
+    contactLink("instagram", { whatsapp: null, phone: null, instagram: "lojahaja_amor" }, "oi"),
+  ).toBe("https://ig.me/m/lojahaja_amor");
+  expect(
+    contactLink("instagram", { whatsapp: null, phone: null, instagram: null }, "oi"),
+  ).toBeNull();
 });
 it("intervalo: 3 min no WhatsApp, 2 nos demais", () => {
   const last = new Date(NOW.getTime() - 60_000);
@@ -153,10 +214,12 @@ it("intervalo: 3 min no WhatsApp, 2 nos demais", () => {
 ### Task 3: Campos da frente
 
 **Files:**
+
 - Modify: `src/db/schema.ts` (tabela `fronts`)
 - Create: `drizzle/0002_*.sql` (gerado por `pnpm db:generate`)
 
 **Interfaces:**
+
 - Produces, em `fronts`: `findingPolicy: text("finding_policy").notNull().default("conferido")`, `messageTemplate: text("message_template")`, `followUpTemplate: text("follow_up_template")`, `weeklyTarget: integer("weekly_target").notNull().default(25)`.
 
 - [ ] **Step 1:** Acrescentar os quatro campos em `schema.ts`.
@@ -169,27 +232,76 @@ it("intervalo: 3 min no WhatsApp, 2 nos demais", () => {
 ### Task 4: Montagem da fila
 
 **Files:**
+
 - Modify: `src/contracts/queue.ts`, `src/contracts/queue.test.ts`
 - Create: `src/domains/outreach/queue.ts`
 
 **Interfaces:**
+
 - Consumes: tudo das Tasks 1 a 3; `checkEngagement` de `src/contracts/engagement.ts`.
 - Produces (puro, em `contracts/queue.ts`):
 
 ```ts
-type QLead = { id: string; name: string; stage: Stage; whatsapp: string | null; phone: string | null;
-  instagram: string | null; followers: number | null; engagementPct: number | null;
-  signals: Record<string, unknown>; createdAt: Date };
-type QFinding = { leadId: string; summary: string; origin: string; verifiedAt: Date; evidenceUrl: string };
-type QContact = { id: string; leadId: string; channel: string; sentAt: Date; isFollowUp: boolean; repliedAt: Date | null };
-type QFront = { channel: Channel; dailyLimit: number; weeklyTarget: number; findingPolicy: FindingPolicy;
-  messageTemplate: string | null; followUpTemplate: string | null; usesEngagement: boolean; engagementMin: number | null };
+type QLead = {
+  id: string;
+  name: string;
+  stage: Stage;
+  whatsapp: string | null;
+  phone: string | null;
+  instagram: string | null;
+  followers: number | null;
+  engagementPct: number | null;
+  signals: Record<string, unknown>;
+  createdAt: Date;
+};
+type QFinding = {
+  leadId: string;
+  summary: string;
+  origin: string;
+  verifiedAt: Date;
+  evidenceUrl: string;
+};
+type QContact = {
+  id: string;
+  leadId: string;
+  channel: string;
+  sentAt: Date;
+  isFollowUp: boolean;
+  repliedAt: Date | null;
+};
+type QFront = {
+  channel: Channel;
+  dailyLimit: number;
+  weeklyTarget: number;
+  findingPolicy: FindingPolicy;
+  messageTemplate: string | null;
+  followUpTemplate: string | null;
+  usesEngagement: boolean;
+  engagementMin: number | null;
+};
 type QItem = { lead: QLead; finding: QFinding | null; message: string; link: string };
-type Queue = { quota: number; sentToday: number; waitMs: number;
-  novos: QItem[]; followUps: QItem[]; replied: QLead[];
-  excluded: { semTexto: boolean; achadoVencido: number; semContato: number; semEngajamento: number } };
-function selectQueue(i: { front: QFront; leads: QLead[]; findings: QFinding[]; contacts: QContact[];
-  channelContacts: { sentAt: Date }[]; now: Date }): Queue
+type Queue = {
+  quota: number;
+  sentToday: number;
+  waitMs: number;
+  novos: QItem[];
+  followUps: QItem[];
+  replied: QLead[];
+  excluded: {
+    semTexto: boolean;
+    achadoVencido: number;
+    semContato: number;
+    semEngajamento: number;
+  };
+};
+function selectQueue(i: {
+  front: QFront;
+  leads: QLead[];
+  findings: QFinding[];
+  contacts: QContact[];
+  channelContacts: { sentAt: Date }[];
+  now: Date;
+}): Queue;
 ```
 
 - Produces (banco, em `domains/outreach/queue.ts`):
@@ -198,6 +310,7 @@ function selectQueue(i: { front: QFront; leads: QLead[]; findings: QFinding[]; c
   - `skipToday(leadId: string, now?: Date): Promise<ActionResult>` — grava `signals.pulado_em = spDay(now)`.
 
 Regras de `selectQueue`:
+
 - `channelContacts` são todos os contatos do canal da frente desde o começo da semana (de qualquer frente); `sentToday` e o restante do canal saem deles.
 - **novos:** etapa `importado`, `qualificado` ou `aprovado`; sem nenhum contato; `signals.pulado_em` diferente de hoje; `contactLink` não nulo (senão conta em `semContato`); se `usesEngagement`, `checkEngagement` ok (senão `semEngajamento`); `validFinding` não nulo (senão `achadoVencido`). Ordem: `signals.score` numérico decrescente, depois `createdAt`. Corta em `quota`.
 - **followUps:** etapa `contatado`; exatamente um contato, sem resposta, com `businessDaysBetween(sentAt, now) >= 3`. Não entram na meta semanal; respeitam o restante do canal.
@@ -206,6 +319,7 @@ Regras de `selectQueue`:
 - `message` = `renderMessage(template, { nome: lead.name, achado: finding.summary })`.
 
 Regras de `markSent` (uma transação, relendo o estado):
+
 - `first`: recusa se o lead já tem contato, se não está mais em `novos` da fila recalculada, ou se `waitMs > 0`. Grava o contato (canal da frente, texto renderizado, `sentAt = now`) e leva a etapa direto para `contatado`.
 - `followup`: recusa se já existe follow-up, se houve resposta, ou se `waitMs > 0`. Grava com `isFollowUp = true`.
 
@@ -231,16 +345,19 @@ Regras de `markSent` (uma transação, relendo o estado):
 ### Task 5: Tela da fila
 
 **Files:**
+
 - Create: `src/app/fila/page.tsx`, `src/app/fila/actions.ts`, `src/app/fila/queue-item.tsx`
 - Modify: `src/app/page.tsx` (link "fila de hoje" no lugar de "aprovação de lote")
 - Delete: `src/app/aprovacao/` (3 arquivos), `src/domains/outreach/approve.ts`, `src/domains/outreach/limits.ts` e seu teste, se nada mais os importar (conferir com grep antes).
 - Modify: `PRODUCT.md` (fluxo 5 vira "Abrir a fila do dia"; a regra "Nada é enviado sem marcação aprovado" vira "Nada entra na fila sem achado válido pela política da frente").
 
 **Interfaces:**
+
 - Consumes: `buildQueue`, `markSent`, `skipToday` (Task 4).
 - Produces: rota `/fila?frente=<slug>` (sem parâmetro: primeira frente ativa com `messageTemplate`, senão a primeira ativa). Actions `enviei(formData)`, `pular(formData)` validadas com zod (`leadId` uuid, `kind`).
 
 Conteúdo da tela, no visual atual (mesmas classes de `src/app/leads/[id]/page.tsx`):
+
 - Cabeçalho: data de hoje, seletor de frente (links), "Meta da semana: N · hoje: Q novos · <canal>: X de L enviados hoje". Se `waitMs > 0`: "Próximo envio liberado às HH:MM".
 - Seção Novos: nome (link para `/leads/[id]`), cidade de `signals`, achado com data da medição e link da evidência, texto da mensagem, botões.
 - `queue-item.tsx` (client): botão "abrir conversa" abre `link` em nova aba e, no Instagram, copia a mensagem para a área de transferência e mostra "mensagem copiada"; botões "enviei" e "pular" são `<form action>`. Com `waitMs > 0`, "abrir conversa" e "enviei" ficam desabilitados.
@@ -260,11 +377,13 @@ Conteúdo da tela, no visual atual (mesmas classes de `src/app/leads/[id]/page.t
 ### Task 6: Edição das frentes e reconferência do achado
 
 **Files:**
+
 - Create: `src/app/frentes/page.tsx`, `src/app/frentes/actions.ts`, `src/app/frentes/front-form.tsx`
 - Create: `src/contracts/front.ts`, `src/contracts/front.test.ts`
 - Modify: `src/app/page.tsx` (link "frentes"), `src/domains/leads/findings.ts`, `src/app/leads/[id]/actions.ts`, `src/app/leads/[id]/page.tsx`
 
 **Interfaces:**
+
 - Produces:
   - `frontEditSchema` (zod): `id` uuid; `dailyLimit` inteiro 1 a 50; `weeklyTarget` inteiro 0 a 100, **múltiplo de 5**; `findingPolicy` em `FINDING_POLICIES`; `messageTemplate` e `followUpTemplate` texto opcional, vazio vira `null`; `active` booleano.
   - `reconfirmFinding(findingId: string, now?: Date): Promise<ActionResult>` em `findings.ts` — só para achado de origem `conferido`; atualiza `verifiedAt`.
