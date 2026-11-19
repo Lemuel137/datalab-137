@@ -84,7 +84,16 @@ export function validFinding<F extends { origin: string; verifiedAt: Date }>(
 }
 
 export function renderMessage(template: string, v: { nome: string; achado: string }): string {
-  return template.replaceAll("{nome}", v.nome).replaceAll("{achado}", v.achado);
+  // Função no lugar do texto: "$&" e "$$" dentro de um achado ("R$ 10") seriam interpretados.
+  return template.replaceAll("{nome}", () => v.nome).replaceAll("{achado}", () => v.achado);
+}
+
+/** Número de WhatsApp com DDI, ou null quando o campo não é um número só (ramal, dois números). */
+function whatsappNumber(raw: string | null): string | null {
+  const digits = (normalizePhone(raw) ?? "").replace(/^0+/, "");
+  if (digits.length === 10 || digits.length === 11) return `55${digits}`;
+  if ((digits.length === 12 || digits.length === 13) && digits.startsWith("55")) return digits;
+  return null;
 }
 
 /** Link que abre a conversa. WhatsApp leva o texto; o Instagram não aceita texto no link. */
@@ -94,10 +103,8 @@ export function contactLink(
   message: string,
 ): string | null {
   if (channel === "whatsapp") {
-    const digits = normalizePhone(lead.whatsapp) ?? normalizePhone(lead.phone);
-    if (!digits) return null;
-    // 10 ou 11 dígitos é número nacional sem o DDI.
-    const full = digits.length <= 11 ? `55${digits}` : digits;
+    const full = whatsappNumber(lead.whatsapp) ?? whatsappNumber(lead.phone);
+    if (!full) return null;
     return `https://wa.me/${full}?text=${encodeURIComponent(message)}`;
   }
   if (channel === "instagram") {

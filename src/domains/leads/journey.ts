@@ -3,12 +3,20 @@ import { and, desc, eq, gte } from "drizzle-orm";
 import { db } from "@/db/client";
 import { contacts, findings, fronts, leads } from "@/db/schema";
 import { checkEngagement } from "@/contracts/engagement";
+import { businessDaysBetween } from "@/contracts/queue";
 import { canAdvance, requiresFinding, type Channel, type Stage } from "@/contracts/funnel";
 
 export type ActionResult = { ok: boolean; message: string };
 
 // Só achado conferido no navegador libera abordagem; achado de script não basta.
+// Lead que já foi contatado passou pelo crivo do achado na hora do envio (fila do dia).
 async function hasFinding(leadId: string): Promise<boolean> {
+  const [sent] = await db
+    .select({ id: contacts.id })
+    .from(contacts)
+    .where(eq(contacts.leadId, leadId))
+    .limit(1);
+  if (sent) return true;
   const [row] = await db
     .select({ id: findings.id })
     .from(findings)
@@ -65,7 +73,7 @@ export async function registerContact(input: {
   }
 
   const anteriores = await db
-    .select({ id: contacts.id, isFollowUp: contacts.isFollowUp })
+    .select({ id: contacts.id, isFollowUp: contacts.isFollowUp, sentAt: contacts.sentAt })
     .from(contacts)
     .where(eq(contacts.leadId, input.leadId));
 
@@ -78,6 +86,14 @@ export async function registerContact(input: {
 
   if (anteriores.some((c) => c.isFollowUp)) {
     return { ok: false, message: "O follow-up único já foi enviado. Não insistir." };
+  }
+
+  if (
+    input.isFollowUp &&
+    anteriores[0] &&
+    businessDaysBetween(anteriores[0].sentAt, new Date()) < 3
+  ) {
+    return { ok: false, message: "Follow-up só depois de 3 dias úteis do primeiro envio." };
   }
 
   await db.insert(contacts).values({

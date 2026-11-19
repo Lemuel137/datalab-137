@@ -324,3 +324,24 @@ describe("selectQueue", () => {
     expect(q.waitMs).toBe(120_000);
   });
 });
+
+describe("achados da revisão", () => {
+  const lead = { whatsapp: null, phone: null, instagram: null };
+
+  it("telefone: tira o zero de tronco e recusa o que não é um número só", () => {
+    expect(contactLink("whatsapp", { ...lead, whatsapp: "011 98888-7777" }, "oi")).toContain(
+      "wa.me/5511988887777?",
+    );
+    // ramal colado ao número e dois números no mesmo campo não viram link
+    expect(contactLink("whatsapp", { ...lead, whatsapp: "(11) 3333-4444 r. 12" }, "oi")).toBeNull();
+    expect(
+      contactLink("whatsapp", { ...lead, whatsapp: "11 98888-7777 / 11 97777-6666" }, "oi"),
+    ).toBeNull();
+  });
+
+  it("renderMessage não interpreta $ do achado", () => {
+    expect(renderMessage("{nome}: {achado}", { nome: "X", achado: "R$' 10 e $& $$" })).toBe(
+      "X: R$' 10 e $& $$",
+    );
+  });
+});

@@ -1,9 +1,11 @@
 import "server-only";
-import { and, eq, gte, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { contacts, findings, fronts, leads } from "@/db/schema";
 import type { Channel, Stage } from "@/contracts/funnel";
 import {
+  businessDaysBetween,
+  renderMessage,
   selectQueue,
   spDay,
   weekStart,
@@ -17,6 +19,16 @@ export type Front = typeof fronts.$inferSelect;
 
 // A transação e o `db` têm os mesmos métodos de consulta.
 type Executor = Pick<typeof db, "select" | "insert" | "update">;
+
+async function latestSummary(ex: Executor, leadId: string): Promise<string> {
+  const [f] = await ex
+    .select({ summary: findings.summary })
+    .from(findings)
+    .where(eq(findings.leadId, leadId))
+    .orderBy(desc(findings.verifiedAt))
+    .limit(1);
+  return f?.summary ?? "";
+}
 
 async function loadQueue(ex: Executor, front: Front, now: Date): Promise<Queue> {
   const leadRows = await ex.select().from(leads).where(eq(leads.frontId, front.id));
@@ -78,27 +90,48 @@ export async function markSent(
     const [front] = await tx.select().from(fronts).where(eq(fronts.id, lead.frontId)).limit(1);
     if (!front) return { ok: false, message: "Frente não encontrada." };
 
+    // Limite diário e intervalo são do canal: sem esta trava, dois leads diferentes
+    // registrados ao mesmo tempo não enxergam o envio um do outro.
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${front.channel}))`);
+
+    const mine = await tx.select().from(contacts).where(eq(contacts.leadId, leadId));
+    if (kind === "first" && mine.length > 0) {
+      return { ok: false, message: "Este lead já tem envio registrado." };
+    }
+    if (kind === "followup") {
+      if (mine.length === 0) return { ok: false, message: "Ainda não há primeiro envio." };
+      if (mine.some((c) => c.isFollowUp)) {
+        return { ok: false, message: "O follow-up único já foi enviado. Não insistir." };
+      }
+      if (businessDaysBetween(mine[0].sentAt, now) < 3) {
+        return { ok: false, message: "Follow-up só depois de 3 dias úteis do primeiro envio." };
+      }
+      if (mine.some((c) => c.repliedAt)) {
+        return { ok: false, message: "Este lead já respondeu; não cabe follow-up." };
+      }
+    }
+
     const queue = await loadQueue(tx, front, now);
     if (queue.waitMs > 0) {
       const s = Math.ceil(queue.waitMs / 1000);
       return { ok: false, message: `Aguarde ${s}s: intervalo mínimo entre envios do canal.` };
     }
-    const list = kind === "first" ? queue.novos : queue.followUps;
-    const item = list.find((it) => it.lead.id === leadId);
-    if (!item) {
-      return {
-        ok: false,
-        message:
-          kind === "first"
-            ? "Este lead não está mais na fila de hoje (já contatado, achado vencido ou limite atingido)."
-            : "Este follow-up não está mais na fila (já feito, respondido ou limite atingido).",
-      };
-    }
+    const item = (kind === "first" ? queue.novos : queue.followUps).find(
+      (it) => it.lead.id === leadId,
+    );
+    // Fora da fila (achado venceu ou limite estourou depois de abrir a conversa): o envio
+    // já aconteceu à mão, então grava mesmo assim. Recusar criaria uma segunda "primeira mensagem".
+    const template = kind === "first" ? front.messageTemplate : front.followUpTemplate;
+    const message =
+      item?.message ??
+      (template
+        ? renderMessage(template, { nome: lead.name, achado: await latestSummary(tx, leadId) })
+        : "(texto não registrado)");
 
     await tx.insert(contacts).values({
       leadId,
       channel: front.channel,
-      message: item.message,
+      message,
       isFollowUp: kind === "followup",
       sentAt: now,
     });
@@ -108,7 +141,13 @@ export async function markSent(
         .set({ stage: "contatado", updatedAt: now })
         .where(eq(leads.id, leadId));
     }
-    return { ok: true, message: kind === "first" ? "Envio registrado." : "Follow-up registrado." };
+    const done = kind === "first" ? "Envio registrado" : "Follow-up registrado";
+    return {
+      ok: true,
+      message: item
+        ? `${done}.`
+        : `${done}, mas fora da fila de hoje (achado vencido ou limite do canal). Confira o lead.`,
+    };
   });
 }
 
