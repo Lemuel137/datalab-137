@@ -11,24 +11,31 @@ const globalForDb = globalThis as unknown as { pool?: Pool };
  * e o build não tem (nem deve ter) acesso ao banco.
  */
 /**
- * O banco do DigitalOcean usa certificado próprio e o `sslmode=require` do
- * Postgres trata a cadeia como não confiável. Localmente isso não aparece
- * (Docker sem SSL); em produção derrubava toda consulta com
- * "self-signed certificate in certificate chain".
+ * O banco gerenciado do DigitalOcean usa certificado próprio.
+ *
+ * Detalhe que custou um deploy: o `pg-connection-string` reconstrói o objeto
+ * `ssl` inteiro quando acha `sslmode` na URL, descartando o que passamos no
+ * `Pool`. Por isso tiramos o `sslmode` da string e mandamos o SSL pelo objeto.
  */
-function sslPara(connectionString: string) {
-  const local = /localhost|127\.0\.0\.1/.test(connectionString);
-  return local ? undefined : { rejectUnauthorized: false };
+function separarSsl(connectionString: string) {
+  const url = new URL(connectionString);
+  const sslmode = url.searchParams.get("sslmode");
+  url.searchParams.delete("sslmode");
+  return { url: url.toString(), sslmode };
 }
 
 function criarPool(): Pool {
-  const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) {
+  const original = process.env.DATABASE_URL;
+  if (!original) {
     throw new Error("DATABASE_URL não definida. Copie .env.example para .env.local.");
   }
+
+  const { url, sslmode } = separarSsl(original);
+  const local = /localhost|127\.0\.0\.1/.test(url);
+
   return new Pool({
-    connectionString,
-    ssl: sslPara(connectionString),
+    connectionString: url,
+    ssl: local || sslmode === "disable" ? undefined : { rejectUnauthorized: false },
     max: 5,
     idleTimeoutMillis: 30_000,
   });
