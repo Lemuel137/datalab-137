@@ -10,12 +10,28 @@ const globalForDb = globalThis as unknown as { pool?: Pool };
  * Sem isso o build quebra: o Next carrega o módulo para montar as rotas,
  * e o build não tem (nem deve ter) acesso ao banco.
  */
+/**
+ * O banco do DigitalOcean usa certificado próprio e o `sslmode=require` do
+ * Postgres trata a cadeia como não confiável. Localmente isso não aparece
+ * (Docker sem SSL); em produção derrubava toda consulta com
+ * "self-signed certificate in certificate chain".
+ */
+function sslPara(connectionString: string) {
+  const local = /localhost|127\.0\.0\.1/.test(connectionString);
+  return local ? undefined : { rejectUnauthorized: false };
+}
+
 function criarPool(): Pool {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
     throw new Error("DATABASE_URL não definida. Copie .env.example para .env.local.");
   }
-  return new Pool({ connectionString, max: 5, idleTimeoutMillis: 30_000 });
+  return new Pool({
+    connectionString,
+    ssl: sslPara(connectionString),
+    max: 5,
+    idleTimeoutMillis: 30_000,
+  });
 }
 
 export function getPool(): Pool {
