@@ -182,10 +182,22 @@ function Fila({
       <section className="border-t border-zinc-200 pt-4 text-sm">
         <h2 className="mb-2 text-xs uppercase tracking-wide text-zinc-500">Fora da fila</h2>
         <p className="text-zinc-600">
-          {excluded.vencidos.length} com achado vencido ou sem achado · {excluded.semContato} sem
-          contato em {front.channel} · {excluded.semEngajamento} com engajamento não medido ou
-          abaixo do piso
+          {excluded.vencidos.length} com achado vencido ou sem achado · {excluded.semGancho.length}{" "}
+          com achado sem gancho ou lado do cliente · {excluded.semContato} sem contato em{" "}
+          {front.channel} · {excluded.semEngajamento} com engajamento não medido ou abaixo do piso
         </p>
+        {excluded.semGancho.length > 0 && (
+          <ul className="mt-2 flex flex-col gap-1">
+            {excluded.semGancho.map((l) => (
+              <li key={l.id}>
+                <Link href={`/leads/${l.id}`} className="underline">
+                  {l.name}
+                </Link>{" "}
+                <span className="text-zinc-500">· falta gancho ou lado do cliente no achado</span>
+              </li>
+            ))}
+          </ul>
+        )}
         {excluded.vencidos.length > 0 && (
           <ul className="mt-2 flex flex-col gap-1">
             {excluded.vencidos.map((l) => (

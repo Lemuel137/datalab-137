@@ -83,9 +83,24 @@ export function validFinding<F extends { origin: string; verifiedAt: Date }>(
   );
 }
 
-export function renderMessage(template: string, v: { nome: string; achado: string }): string {
+export type MessageVars = {
+  nome: string;
+  achado: string;
+  /** Algo da própria empresa, citado: é o que abre a mensagem. */
+  gancho?: string | null;
+  /** Quem perde naquele caso, pelo lado do cliente da empresa. */
+  cliente?: string | null;
+};
+const VAR_KEYS = ["nome", "achado", "gancho", "cliente"] as const;
+
+export function renderMessage(template: string, v: MessageVars): string {
   // Função no lugar do texto: "$&" e "$$" dentro de um achado ("R$ 10") seriam interpretados.
-  return template.replaceAll("{nome}", () => v.nome).replaceAll("{achado}", () => v.achado);
+  return VAR_KEYS.reduce((out, k) => out.replaceAll(`{${k}}`, () => v[k] ?? ""), template);
+}
+
+/** Partes que o texto pede e o achado não tem: com alguma faltando, a mensagem sairia genérica. */
+export function missingVars(template: string, v: MessageVars): string[] {
+  return VAR_KEYS.filter((k) => template.includes(`{${k}}`) && !(v[k] ?? "").trim());
 }
 
 /** Número de WhatsApp com DDI, ou null quando o campo não é um número só (ramal, dois números). */
@@ -139,6 +154,8 @@ export type QFinding = {
   origin: string;
   verifiedAt: Date;
   evidenceUrl: string;
+  hook: string | null;
+  customerSide: string | null;
 };
 export type QContact = {
   id: string;
@@ -166,7 +183,14 @@ export type Queue = {
   novos: QItem[];
   followUps: QItem[];
   replied: QLead[];
-  excluded: { semTexto: boolean; vencidos: QLead[]; semContato: number; semEngajamento: number };
+  excluded: {
+    semTexto: boolean;
+    vencidos: QLead[];
+    /** Achado válido, mas sem gancho ou lado do cliente que o texto da frente pede. */
+    semGancho: QLead[];
+    semContato: number;
+    semEngajamento: number;
+  };
 };
 
 const FOLLOW_UP_BUSINESS_DAYS = 3;
@@ -203,8 +227,15 @@ export function selectQueue(i: {
     null,
   );
 
+  const vars = (lead: QLead, finding: QFinding | null): MessageVars => ({
+    nome: lead.name,
+    achado: finding?.summary ?? "",
+    gancho: finding?.hook,
+    cliente: finding?.customerSide,
+  });
   const item = (lead: QLead, template: string, finding: QFinding | null): QItem | null => {
-    const message = renderMessage(template, { nome: lead.name, achado: finding?.summary ?? "" });
+    if (missingVars(template, vars(lead, finding)).length > 0) return null;
+    const message = renderMessage(template, vars(lead, finding));
     const link = contactLink(front.channel, lead, message);
     return link ? { lead, finding, message, link } : null;
   };
@@ -242,6 +273,7 @@ export function selectQueue(i: {
   const excluded: Queue["excluded"] = {
     semTexto: !front.messageTemplate,
     vencidos: [],
+    semGancho: [],
     semContato: 0,
     semEngajamento: 0,
   };
@@ -273,6 +305,7 @@ export function selectQueue(i: {
       }
       const it = item(lead, front.messageTemplate, finding);
       if (it) eligible.push(it);
+      else excluded.semGancho.push(lead);
     }
   }
   const score = (l: QLead) => Number(l.signals.score) || 0;

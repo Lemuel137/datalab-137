@@ -20,16 +20,6 @@ export type Front = typeof fronts.$inferSelect;
 // A transação e o `db` têm os mesmos métodos de consulta.
 type Executor = Pick<typeof db, "select" | "insert" | "update">;
 
-async function latestSummary(ex: Executor, leadId: string): Promise<string> {
-  const [f] = await ex
-    .select({ summary: findings.summary })
-    .from(findings)
-    .where(eq(findings.leadId, leadId))
-    .orderBy(desc(findings.verifiedAt))
-    .limit(1);
-  return f?.summary ?? "";
-}
-
 async function loadQueue(ex: Executor, front: Front, now: Date): Promise<Queue> {
   const leadRows = await ex.select().from(leads).where(eq(leads.frontId, front.id));
   const ids = leadRows.map((l) => l.id);
@@ -83,6 +73,8 @@ export async function markSent(
   leadId: string,
   kind: "first" | "followup",
   now = new Date(),
+  /** Texto que a pessoa ajustou na fila antes de enviar; vazio usa o texto montado. */
+  edited?: string,
 ): Promise<ActionResult> {
   return db.transaction(async (tx) => {
     const [lead] = await tx.select().from(leads).where(eq(leads.id, leadId)).for("update");
@@ -122,11 +114,23 @@ export async function markSent(
     // Fora da fila (achado venceu ou limite estourou depois de abrir a conversa): o envio
     // já aconteceu à mão, então grava mesmo assim. Recusar criaria uma segunda "primeira mensagem".
     const template = kind === "first" ? front.messageTemplate : front.followUpTemplate;
-    const message =
-      item?.message ??
-      (template
-        ? renderMessage(template, { nome: lead.name, achado: await latestSummary(tx, leadId) })
-        : "(texto não registrado)");
+    let message = edited?.trim() || item?.message;
+    if (!message) {
+      const [f] = await tx
+        .select()
+        .from(findings)
+        .where(eq(findings.leadId, leadId))
+        .orderBy(desc(findings.verifiedAt))
+        .limit(1);
+      message = template
+        ? renderMessage(template, {
+            nome: lead.name,
+            achado: f?.summary ?? "",
+            gancho: f?.hook,
+            cliente: f?.customerSide,
+          })
+        : "(texto não registrado)";
+    }
 
     await tx.insert(contacts).values({
       leadId,

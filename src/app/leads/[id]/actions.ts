@@ -19,6 +19,8 @@ export async function addFinding(
     confidence: formData.get("confidence"),
     kind: formData.get("kind") ?? undefined,
     origin: formData.get("origin") ?? undefined,
+    hook: formData.get("hook"),
+    customerSide: formData.get("customerSide"),
   });
 
   if (result.ok) revalidatePath(`/leads/${String(formData.get("leadId"))}`);

@@ -36,6 +36,11 @@ export const FINDING_ORIGINS = ["script", "conferido"] as const;
 
 export type FindingOrigin = (typeof FINDING_ORIGINS)[number];
 
+const optText = z
+  .string()
+  .nullish()
+  .transform((v) => (v && v.trim() !== "" ? v.trim() : null));
+
 export const findingFormSchema = z.object({
   leadId: z.uuid(),
   summary: z.string().trim().min(10, "Descreva o achado em pelo menos 10 caracteres."),
@@ -43,6 +48,8 @@ export const findingFormSchema = z.object({
   confidence: z.enum(["alta", "media", "baixa"]),
   kind: z.enum(FINDING_KINDS).default("outro"),
   origin: z.enum(FINDING_ORIGINS).default("conferido"),
+  hook: optText,
+  customerSide: optText,
 });
 
 export type FindingFormState = { ok: boolean; message: string } | undefined;

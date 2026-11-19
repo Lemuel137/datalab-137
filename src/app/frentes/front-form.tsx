@@ -70,7 +70,7 @@ export function FrontForm({ front }: { front: FrontRow }) {
       </div>
 
       <label className={label}>
-        Primeira mensagem (use {"{nome}"} e {"{achado}"})
+        Primeira mensagem (use {"{gancho}"}, {"{achado}"}, {"{cliente}"} e {"{nome}"})
         <textarea
           name="messageTemplate"
           rows={4}

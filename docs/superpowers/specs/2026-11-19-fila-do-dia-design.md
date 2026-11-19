@@ -129,3 +129,48 @@ Cada parte passa pelo fluxo do curso: plano, teste antes do código, revisão e 
 - **Textos das mensagens** de delivery e e-commerce: escrevo o rascunho na etapa 2 para ele aprovar, com a abordagem que já usamos (abrir pelo que é da empresa, problema pelo lado do cliente dela, fechar com pergunta).
 - A auditoria de cardápios do Saipos usa um navegador automático (`07_render.py`); preciso confirmar se roda sem ninguém olhando.
 - `PRODUCT.md` diz que nada é enviado sem a marcação "aprovado"; será atualizado junto com a etapa 1.
+
+## Adendo (19/11): gancho, lado do cliente e textos
+
+O Lemuel pediu que os textos sigam a abordagem do livro Supercomunicadores, como na DM da Mustache Store aprovada em 12/11. Com só `{nome}` e `{achado}` o texto fixo saía genérico. Mudanças:
+
+- O achado ganhou dois campos opcionais: `hook` (gancho: algo da própria empresa, citado, que abre a mensagem) e `customerSide` (quem perde naquele caso, pelo lado do cliente dela).
+- O texto da frente aceita `{gancho}`, `{achado}`, `{cliente}` e `{nome}`. Se o texto pede uma parte que o achado não tem, o lead fica fora da fila ("achado sem gancho") em vez de receber mensagem genérica.
+- O texto montado é editável na fila antes de abrir a conversa, e o que fica registrado é o texto como foi enviado.
+- No delivery (etapa 2), o script preenche o gancho com o texto do anúncio coletado pelo Captor e cita os itens do cardápio pelo nome. Sem anúncio aproveitável, o lead não entra na fila.
+
+### Textos aprovados como ponto de partida
+
+E-commerce, primeira mensagem:
+
+```
+Oi! Vi {gancho} e fui olhar os produtos. {achado}.
+
+{cliente}. Isso costuma acontecer quando a peça sai do site e continua no catálogo dos anúncios.
+
+Quer que eu te mande os prints com os links?
+```
+
+E-commerce, follow-up:
+
+```
+Oi, voltando só uma vez: ainda faz sentido eu te mandar o print do que vi nos anúncios da {nome}? Se não for o momento, sem problema.
+```
+
+Delivery, primeira mensagem:
+
+```
+Oi! Vi {gancho} e fui abrir o cardápio como quem vai pedir. Reparei que {achado}.
+
+Como o anúncio leva direto para lá, {cliente}. Isso é comum: o cardápio vai ao ar na correria e ninguém volta para completar.
+
+Quer que eu te mande a lista dos itens que eu vi?
+```
+
+Delivery, follow-up:
+
+```
+Oi, passando só para saber se faz sentido eu te mandar o que vi no cardápio da {nome}. Se não for a hora, me avisa que eu não insisto.
+```
+
+Como escrever cada parte: gancho e achado entram no meio da frase, começando em minúscula e sem ponto final; lado do cliente abre frase, começando em maiúscula (no e-commerce) e sem ponto final.

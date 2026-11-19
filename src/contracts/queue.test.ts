@@ -4,6 +4,7 @@ import {
   contactLink,
   dailyQuota,
   gapWaitMs,
+  missingVars,
   renderMessage,
   selectQueue,
   spDay,
@@ -167,6 +168,8 @@ describe("selectQueue", () => {
     origin: "script",
     verifiedAt: new Date(iso),
     evidenceUrl: "https://cardapio.example/x",
+    hook: null,
+    customerSide: null,
   });
   const contact = (leadId: string, iso: string, over: Partial<QContact> = {}): QContact => ({
     id: `c-${leadId}-${iso}`,
@@ -343,5 +346,79 @@ describe("achados da revisão", () => {
     expect(renderMessage("{nome}: {achado}", { nome: "X", achado: "R$' 10 e $& $$" })).toBe(
       "X: R$' 10 e $& $$",
     );
+  });
+});
+
+describe("gancho e lado do cliente", () => {
+  const T = "Oi! Vi {gancho} e reparei que {achado}.\n\n{cliente}. Quer os prints?";
+
+  it("renderMessage troca as quatro partes", () => {
+    expect(
+      renderMessage("{nome}: vi {gancho}; {achado}; {cliente}", {
+        nome: "X",
+        achado: "2 produtos não abrem",
+        gancho: "o anúncio do mimo",
+        cliente: "quem volta para comprar não acha",
+      }),
+    ).toBe("X: vi o anúncio do mimo; 2 produtos não abrem; quem volta para comprar não acha");
+  });
+
+  it("missingVars aponta o que o texto pede e o achado não tem", () => {
+    expect(missingVars(T, { nome: "X", achado: "a", gancho: "", cliente: null })).toEqual([
+      "gancho",
+      "cliente",
+    ]);
+    expect(missingVars(T, { nome: "X", achado: "a", gancho: "g", cliente: "c" })).toEqual([]);
+    expect(missingVars("Oi {nome}", { nome: "X", achado: "" })).toEqual([]);
+  });
+
+  it("fila: achado sem gancho não vira mensagem genérica", () => {
+    const front: QFront = {
+      channel: "whatsapp",
+      dailyLimit: 20,
+      weeklyTarget: 25,
+      findingPolicy: "script",
+      messageTemplate: T,
+      followUpTemplate: null,
+      usesEngagement: false,
+      engagementMin: null,
+    };
+    const lead = (id: string): QLead => ({
+      id,
+      name: id,
+      stage: "importado",
+      whatsapp: "47992706419",
+      phone: null,
+      instagram: null,
+      followers: null,
+      engagementPct: null,
+      signals: {},
+      createdAt: QUI,
+    });
+    const f = (leadId: string, hook: string | null, customerSide: string | null): QFinding => ({
+      leadId,
+      summary: "a de costela está sem foto",
+      origin: "script",
+      verifiedAt: new Date(QUI.getTime() - 3600_000),
+      evidenceUrl: "https://x",
+      hook,
+      customerSide,
+    });
+    const q = selectQueue({
+      front,
+      leads: [lead("completo"), lead("semgancho")],
+      findings: [
+        f("completo", "o anúncio da pizza de costela", "quem chega pelo anúncio não vê a pizza"),
+        f("semgancho", null, null),
+      ],
+      contacts: [],
+      channelContacts: [],
+      now: QUI,
+    });
+    expect(q.novos.map((n) => n.lead.id)).toEqual(["completo"]);
+    expect(q.novos[0].message).toBe(
+      "Oi! Vi o anúncio da pizza de costela e reparei que a de costela está sem foto.\n\nquem chega pelo anúncio não vê a pizza. Quer os prints?",
+    );
+    expect(q.excluded.semGancho.map((l) => l.id)).toEqual(["semgancho"]);
   });
 });

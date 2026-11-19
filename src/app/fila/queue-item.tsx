@@ -34,6 +34,10 @@ export function QueueItem({
     undefined,
   );
   const [copied, setCopied] = useState(false);
+  // O texto montado é ponto de partida: dá para ajustar antes de abrir a conversa.
+  const [text, setText] = useState(row.message);
+  const base = row.link.split("?text=")[0];
+  const link = row.link.includes("?text=") ? `${base}?text=${encodeURIComponent(text)}` : row.link;
   const state = sent ?? skipped;
   const btn = "border px-3 py-1 text-sm disabled:opacity-50";
 
@@ -63,22 +67,26 @@ export function QueueItem({
         </p>
       )}
 
-      <p className="whitespace-pre-wrap border-l-2 border-zinc-300 pl-3 text-sm text-zinc-700">
-        {row.message}
-      </p>
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        rows={Math.min(10, text.split("\n").length + 2)}
+        aria-label={`Mensagem para ${row.name}`}
+        className="border border-zinc-300 p-2 text-sm"
+      />
 
       <div className="flex flex-wrap items-center gap-2">
         {locked ? (
           <span className={`${btn} border-zinc-300 text-zinc-400`}>abrir conversa</span>
         ) : (
           <a
-            href={row.link}
+            href={link}
             target="_blank"
             rel="noreferrer"
             className={`${btn} border-zinc-900 bg-zinc-900 text-white`}
             onClick={() => {
               if (!copyOnOpen) return;
-              navigator.clipboard.writeText(row.message).then(
+              navigator.clipboard.writeText(text).then(
                 () => setCopied(true),
                 () => setCopied(false),
               );
@@ -90,6 +98,7 @@ export function QueueItem({
         <form action={sendAction}>
           <input type="hidden" name="leadId" value={row.leadId} />
           <input type="hidden" name="kind" value={kind} />
+          <input type="hidden" name="message" value={text} />
           <button type="submit" disabled={locked || sending} className={`${btn} border-zinc-900`}>
             enviei
           </button>

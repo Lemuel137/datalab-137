@@ -190,6 +190,11 @@ export default async function LeadPage({ params }: Props) {
             {list.map((f) => (
               <li key={f.id} className="border border-zinc-200 p-3 text-sm">
                 <p>{f.summary}</p>
+                {(f.hook || f.customerSide) && (
+                  <p className="mt-1 text-xs text-zinc-600">
+                    gancho: {f.hook ?? "—"} · lado do cliente: {f.customerSide ?? "—"}
+                  </p>
+                )}
                 <p className="mt-1 text-xs text-zinc-500">
                   {FINDING_KIND_LABEL[f.kind as FindingKind] ?? f.kind} ·{" "}
                   {f.origin === "script" ? "medido por script" : "conferido no navegador"} ·

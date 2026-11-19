@@ -5,7 +5,12 @@ import { z } from "zod";
 import { markSent, skipToday } from "@/domains/outreach/queue";
 import type { LeadActionState } from "@/contracts/journey";
 
-const sentSchema = z.object({ leadId: z.uuid(), kind: z.enum(["first", "followup"]) });
+const sentSchema = z.object({
+  leadId: z.uuid(),
+  kind: z.enum(["first", "followup"]),
+  // Texto como ficou depois do ajuste à mão na fila.
+  message: z.string().trim().min(5).max(2000),
+});
 
 function refresh(leadId: string) {
   revalidatePath("/fila");
@@ -17,9 +22,15 @@ export async function enviei(_prev: LeadActionState, formData: FormData): Promis
   const parsed = sentSchema.safeParse({
     leadId: formData.get("leadId"),
     kind: formData.get("kind"),
+    message: formData.get("message"),
   });
-  if (!parsed.success) return { ok: false, message: "Pedido inválido." };
-  const result = await markSent(parsed.data.leadId, parsed.data.kind);
+  if (!parsed.success) return { ok: false, message: "Texto vazio ou pedido inválido." };
+  const result = await markSent(
+    parsed.data.leadId,
+    parsed.data.kind,
+    new Date(),
+    parsed.data.message,
+  );
   if (result.ok) refresh(parsed.data.leadId);
   return result;
 }

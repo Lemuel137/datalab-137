@@ -18,6 +18,8 @@ export async function createFinding(input: unknown) {
     confidence: capConfidence(parsed.data.origin, parsed.data.confidence),
     kind: parsed.data.kind,
     origin: parsed.data.origin,
+    hook: parsed.data.hook,
+    customerSide: parsed.data.customerSide,
   });
 
   return { ok: true as const, message: "Achado registrado." };

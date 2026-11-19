@@ -25,6 +25,23 @@ export function FindingForm({ leadId }: { leadId: string }) {
         />
       </label>
 
+      <label className="flex flex-col gap-1 text-sm">
+        Gancho: algo da empresa que abre a mensagem (opcional)
+        <input
+          name="hook"
+          className="border border-zinc-300 p-2 text-sm"
+          placeholder='o anúncio de vocês que fala das peças "embaladas com carinho"'
+        />
+      </label>
+      <label className="flex flex-col gap-1 text-sm">
+        Lado do cliente: quem perde com isso (opcional)
+        <input
+          name="customerSide"
+          className="border border-zinc-300 p-2 text-sm"
+          placeholder="Quem cai ali é justamente a cliente que queria voltar para comprar"
+        />
+      </label>
+
       <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
         <label className="flex flex-col gap-1 text-sm">
           Onde foi verificado

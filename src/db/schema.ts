@@ -71,6 +71,9 @@ export const findings = pgTable(
     confidence: text("confidence").notNull().default("media"),
     kind: text("kind").notNull().default("outro"),
     origin: text("origin").notNull().default("conferido"),
+    // Partes da mensagem além do fato: algo da empresa que abre a conversa, e quem perde.
+    hook: text("hook"),
+    customerSide: text("customer_side"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("findings_lead_idx").on(t.leadId)],
