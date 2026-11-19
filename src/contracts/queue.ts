@@ -156,6 +156,7 @@ export type QFinding = {
   evidenceUrl: string;
   hook: string | null;
   customerSide: string | null;
+  hookBy?: string | null;
 };
 export type QContact = {
   id: string;

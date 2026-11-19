@@ -35,6 +35,7 @@ function toRow(it: QItem): QueueRow {
     place: place || null,
     finding: it.finding?.summary ?? null,
     findingWhen: it.finding ? fmtWhen.format(it.finding.verifiedAt) : null,
+    byAi: it.finding?.hookBy === "ia",
     evidenceUrl: /^https?:\/\//.test(url) ? url : null,
     message: it.message,
     link: it.link,

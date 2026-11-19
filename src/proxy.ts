@@ -11,6 +11,10 @@ function chave() {
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // A porta de entrada de leads não usa a sessão de login: confere a própria chave
+  // (INGEST_TOKEN) em cada rota de src/app/api/ingest.
+  if (pathname.startsWith("/api/ingest/")) return NextResponse.next();
   const token = request.cookies.get(COOKIE)?.value;
 
   let autenticado = false;

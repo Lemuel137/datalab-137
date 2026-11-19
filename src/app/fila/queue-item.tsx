@@ -11,6 +11,8 @@ export type QueueRow = {
   place: string | null;
   finding: string | null;
   findingWhen: string | null;
+  /** Gancho e lado do cliente escritos pela rotina de IA: vale ler antes de enviar. */
+  byAi: boolean;
   evidenceUrl: string | null;
   message: string;
   link: string;
@@ -74,6 +76,12 @@ export function QueueItem({
         aria-label={`Mensagem para ${row.name}`}
         className="border border-zinc-300 p-2 text-sm"
       />
+
+      {row.byAi && (
+        <p className="text-xs text-amber-700">
+          Abertura escrita por IA a partir do anúncio. Leia e ajuste antes de enviar.
+        </p>
+      )}
 
       <div className="flex flex-wrap items-center gap-2">
         {locked ? (

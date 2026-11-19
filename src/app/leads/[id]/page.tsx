@@ -193,6 +193,7 @@ export default async function LeadPage({ params }: Props) {
                 {(f.hook || f.customerSide) && (
                   <p className="mt-1 text-xs text-zinc-600">
                     gancho: {f.hook ?? "—"} · lado do cliente: {f.customerSide ?? "—"}
+                    {f.hookBy === "ia" && " · escrito por IA"}
                   </p>
                 )}
                 <p className="mt-1 text-xs text-zinc-500">
