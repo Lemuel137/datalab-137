@@ -2,7 +2,8 @@
  * Regras da fila do dia. Tudo aqui é puro: recebe linhas e a hora, devolve a fila.
  * "Dia" e "semana" são sempre de Brasília, porque o servidor roda em UTC.
  */
-import type { Channel } from "@/contracts/funnel";
+import { checkEngagement } from "@/contracts/engagement";
+import type { Channel, Stage } from "@/contracts/funnel";
 import { normalizeInstagram, normalizePhone } from "@/domains/leads/normalize";
 
 // shortcut: Brasília é UTC-3 fixo (sem horário de verão desde 2019); trocar por Intl se voltar.
@@ -111,4 +112,175 @@ export function gapWaitMs(channel: Channel, lastSentAt: Date | null, now: Date):
   if (!lastSentAt) return 0;
   const gap = (channel === "whatsapp" ? 3 : 2) * 60_000;
   return Math.max(0, gap - (now.getTime() - lastSentAt.getTime()));
+}
+
+export type QLead = {
+  id: string;
+  name: string;
+  stage: Stage;
+  whatsapp: string | null;
+  phone: string | null;
+  instagram: string | null;
+  followers: number | null;
+  engagementPct: number | null;
+  signals: Record<string, unknown>;
+  createdAt: Date;
+};
+export type QFinding = {
+  leadId: string;
+  summary: string;
+  origin: string;
+  verifiedAt: Date;
+  evidenceUrl: string;
+};
+export type QContact = {
+  id: string;
+  leadId: string;
+  channel: string;
+  sentAt: Date;
+  isFollowUp: boolean;
+  repliedAt: Date | null;
+};
+export type QFront = {
+  channel: Channel;
+  dailyLimit: number;
+  weeklyTarget: number;
+  findingPolicy: FindingPolicy;
+  messageTemplate: string | null;
+  followUpTemplate: string | null;
+  usesEngagement: boolean;
+  engagementMin: number | null;
+};
+export type QItem = { lead: QLead; finding: QFinding | null; message: string; link: string };
+export type Queue = {
+  quota: number;
+  sentToday: number;
+  waitMs: number;
+  novos: QItem[];
+  followUps: QItem[];
+  replied: QLead[];
+  excluded: { semTexto: boolean; vencidos: QLead[]; semContato: number; semEngajamento: number };
+};
+
+const FOLLOW_UP_BUSINESS_DAYS = 3;
+const NEW_STAGES: Stage[] = ["importado", "qualificado", "aprovado"];
+
+/**
+ * Monta a fila de uma frente.
+ * `contacts` são os contatos dos leads da frente; `channelContacts` são todos os
+ * envios do canal desde o começo da semana (de qualquer frente), porque o limite
+ * diário e o intervalo são do canal, não da frente.
+ */
+export function selectQueue(i: {
+  front: QFront;
+  leads: QLead[];
+  findings: QFinding[];
+  contacts: QContact[];
+  channelContacts: { sentAt: Date }[];
+  now: Date;
+}): Queue {
+  const { front, now } = i;
+  const today = spDay(now);
+  const group = <T extends { leadId: string }>(rows: T[]) => {
+    const m = new Map<string, T[]>();
+    for (const r of rows) m.set(r.leadId, [...(m.get(r.leadId) ?? []), r]);
+    return m;
+  };
+  const findingsOf = group(i.findings);
+  const contactsOf = group(i.contacts);
+
+  const sentToday = i.channelContacts.filter((c) => spDay(c.sentAt) === today).length;
+  let channelRemaining = Math.max(0, front.dailyLimit - sentToday);
+  const lastSent = i.channelContacts.reduce<Date | null>(
+    (max, c) => (!max || c.sentAt > max ? c.sentAt : max),
+    null,
+  );
+
+  const item = (lead: QLead, template: string, finding: QFinding | null): QItem | null => {
+    const message = renderMessage(template, { nome: lead.name, achado: finding?.summary ?? "" });
+    const link = contactLink(front.channel, lead, message);
+    return link ? { lead, finding, message, link } : null;
+  };
+  const latest = (leadId: string) =>
+    [...(findingsOf.get(leadId) ?? [])].sort(
+      (a, b) => b.verifiedAt.getTime() - a.verifiedAt.getTime(),
+    )[0] ?? null;
+
+  // Follow-ups primeiro: já venceram e disputam a mesma vaga diária do canal.
+  const followUps: QItem[] = [];
+  if (front.followUpTemplate) {
+    for (const lead of i.leads) {
+      if (followUps.length >= channelRemaining) break;
+      const cs = contactsOf.get(lead.id) ?? [];
+      const due =
+        lead.stage === "contatado" &&
+        cs.length === 1 &&
+        !cs[0].repliedAt &&
+        businessDaysBetween(cs[0].sentAt, now) >= FOLLOW_UP_BUSINESS_DAYS;
+      const it = due ? item(lead, front.followUpTemplate, latest(lead.id)) : null;
+      if (it) followUps.push(it);
+    }
+  }
+  channelRemaining -= followUps.length;
+
+  const start = weekStart(now);
+  const sentNewThisWeek = i.contacts.filter((c) => !c.isFollowUp && c.sentAt >= start).length;
+  const quota = dailyQuota({
+    weeklyTarget: front.weeklyTarget,
+    sentNewThisWeek,
+    channelRemaining,
+    now,
+  });
+
+  const excluded: Queue["excluded"] = {
+    semTexto: !front.messageTemplate,
+    vencidos: [],
+    semContato: 0,
+    semEngajamento: 0,
+  };
+  const eligible: QItem[] = [];
+  if (front.messageTemplate) {
+    for (const lead of i.leads) {
+      if (!NEW_STAGES.includes(lead.stage)) continue;
+      if ((contactsOf.get(lead.id) ?? []).length > 0) continue;
+      if (lead.signals.pulado_em === today) continue;
+      if (!contactLink(front.channel, lead, "")) {
+        excluded.semContato++;
+        continue;
+      }
+      if (front.usesEngagement) {
+        const v = checkEngagement({
+          followers: lead.followers,
+          engagement: lead.engagementPct,
+          frontMin: front.engagementMin,
+        });
+        if (!v.ok) {
+          excluded.semEngajamento++;
+          continue;
+        }
+      }
+      const finding = validFinding(front.findingPolicy, findingsOf.get(lead.id) ?? [], now);
+      if (!finding) {
+        excluded.vencidos.push(lead);
+        continue;
+      }
+      const it = item(lead, front.messageTemplate, finding);
+      if (it) eligible.push(it);
+    }
+  }
+  const score = (l: QLead) => Number(l.signals.score) || 0;
+  eligible.sort(
+    (a, b) =>
+      score(b.lead) - score(a.lead) || a.lead.createdAt.getTime() - b.lead.createdAt.getTime(),
+  );
+
+  return {
+    quota,
+    sentToday,
+    waitMs: gapWaitMs(front.channel, lastSent, now),
+    novos: eligible.slice(0, quota),
+    followUps,
+    replied: i.leads.filter((l) => l.stage === "respondeu"),
+    excluded,
+  };
 }

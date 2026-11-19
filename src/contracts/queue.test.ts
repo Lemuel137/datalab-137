@@ -5,9 +5,14 @@ import {
   dailyQuota,
   gapWaitMs,
   renderMessage,
+  selectQueue,
   spDay,
   validFinding,
   weekStart,
+  type QContact,
+  type QFinding,
+  type QFront,
+  type QLead,
 } from "./queue";
 
 // quinta 19/11/2026 10:00 de Brasília
@@ -129,5 +134,193 @@ describe("texto e link", () => {
     expect(gapWaitMs("instagram", last, QUI)).toBe(60_000);
     expect(gapWaitMs("whatsapp", null, QUI)).toBe(0);
     expect(gapWaitMs("whatsapp", new Date(QUI.getTime() - 600_000), QUI)).toBe(0);
+  });
+});
+
+describe("selectQueue", () => {
+  const front: QFront = {
+    channel: "whatsapp",
+    dailyLimit: 20,
+    weeklyTarget: 25,
+    findingPolicy: "script",
+    messageTemplate: "Oi {nome}: {achado}",
+    followUpTemplate: "Oi {nome}, ainda faz sentido?",
+    usesEngagement: false,
+    engagementMin: null,
+  };
+  const lead = (id: string, over: Partial<QLead> = {}): QLead => ({
+    id,
+    name: `Pizzaria ${id}`,
+    stage: "importado",
+    whatsapp: "47992706419",
+    phone: null,
+    instagram: null,
+    followers: null,
+    engagementPct: null,
+    signals: {},
+    createdAt: new Date("2026-11-10T10:00:00-03:00"),
+    ...over,
+  });
+  const finding = (leadId: string, iso = "2026-11-19T06:00:00-03:00"): QFinding => ({
+    leadId,
+    summary: "43% sem foto",
+    origin: "script",
+    verifiedAt: new Date(iso),
+    evidenceUrl: "https://cardapio.example/x",
+  });
+  const contact = (leadId: string, iso: string, over: Partial<QContact> = {}): QContact => ({
+    id: `c-${leadId}-${iso}`,
+    leadId,
+    channel: "whatsapp",
+    sentAt: new Date(iso),
+    isFollowUp: false,
+    repliedAt: null,
+    ...over,
+  });
+  const run = (i: Partial<Parameters<typeof selectQueue>[0]>) =>
+    selectQueue({
+      front,
+      leads: [],
+      findings: [],
+      contacts: [],
+      channelContacts: [],
+      now: QUI,
+      ...i,
+    });
+  const many = (n: number) => Array.from({ length: n }, (_, k) => lead(`L${k}`));
+
+  it("novos: cota pela meta e ordem pela nota", () => {
+    const leads = many(8).map((l, k) => ({ ...l, signals: { score: k } }));
+    const q = run({ leads, findings: leads.map((l) => finding(l.id)) });
+    expect(q.quota).toBe(13); // 25 ÷ quinta e sexta
+    expect(q.novos.map((n) => n.lead.id)).toEqual(["L7", "L6", "L5", "L4", "L3", "L2", "L1", "L0"]);
+    expect(q.novos[0].message).toBe("Oi Pizzaria L7: 43% sem foto");
+    expect(q.novos[0].link).toContain("wa.me/5547992706419?text=Oi%20Pizzaria");
+  });
+
+  it("respeita o que resta do canal no dia", () => {
+    const leads = many(30);
+    const channelContacts = Array.from({ length: 18 }, () => ({
+      sentAt: new Date("2026-11-19T08:00:00-03:00"),
+    }));
+    const q = run({ leads, findings: leads.map((l) => finding(l.id)), channelContacts });
+    expect(q.sentToday).toBe(18);
+    expect(q.novos).toHaveLength(2);
+  });
+
+  it("envio de ontem às 22h não conta em hoje", () => {
+    const q = run({ channelContacts: [{ sentAt: new Date("2026-11-18T22:00:00-03:00") }] });
+    expect(q.sentToday).toBe(0);
+  });
+
+  it("achado vencido, sem contato e pulado hoje ficam de fora", () => {
+    const leads = [
+      lead("velho"),
+      lead("mudo", { whatsapp: null }),
+      lead("pulado", { signals: { pulado_em: "2026-11-19" } }),
+      lead("ontem", { signals: { pulado_em: "2026-11-18" } }),
+    ];
+    const findings = [
+      finding("velho", "2026-11-18T04:00:00-03:00"),
+      finding("mudo"),
+      finding("pulado"),
+      finding("ontem"),
+    ];
+    const q = run({ leads, findings });
+    expect(q.novos.map((n) => n.lead.id)).toEqual(["ontem"]);
+    expect(q.excluded.vencidos.map((l) => l.id)).toEqual(["velho"]);
+    expect(q.excluded.semContato).toBe(1);
+  });
+
+  it("quem já foi contatado não volta como novo", () => {
+    const l = lead("a", { stage: "contatado" });
+    const q = run({
+      leads: [l],
+      findings: [finding("a")],
+      contacts: [contact("a", "2026-11-18T10:00:00-03:00")],
+    });
+    expect(q.novos).toHaveLength(0);
+    expect(q.followUps).toHaveLength(0);
+  });
+
+  it("follow-up vence com 3 dias úteis, uma vez, e só sem resposta", () => {
+    const st = { stage: "contatado" as const };
+    const leads = [
+      lead("vencido", st),
+      lead("respondeu", st),
+      lead("jafeito", st),
+      lead("cedo", st),
+    ];
+    const contacts = [
+      contact("vencido", "2026-11-13T16:00:00-03:00"),
+      contact("respondeu", "2026-11-13T16:00:00-03:00", {
+        repliedAt: new Date("2026-11-14T10:00:00-03:00"),
+      }),
+      contact("jafeito", "2026-11-10T16:00:00-03:00"),
+      contact("jafeito", "2026-11-16T16:00:00-03:00", { isFollowUp: true }),
+      contact("cedo", "2026-11-17T16:00:00-03:00"),
+    ];
+    const q = run({ leads, contacts });
+    expect(q.followUps.map((f) => f.lead.id)).toEqual(["vencido"]);
+    expect(q.followUps[0].message).toBe("Oi Pizzaria vencido, ainda faz sentido?");
+  });
+
+  it("follow-up ocupa vaga do canal, não da meta semanal", () => {
+    const novos = many(3);
+    const fu = lead("fu", { stage: "contatado" });
+    const channelContacts = Array.from({ length: 18 }, () => ({
+      sentAt: new Date("2026-11-19T08:00:00-03:00"),
+    }));
+    const q = run({
+      leads: [...novos, fu],
+      findings: novos.map((l) => finding(l.id)),
+      contacts: [contact("fu", "2026-11-13T16:00:00-03:00")],
+      channelContacts,
+    });
+    expect(q.followUps).toHaveLength(1);
+    expect(q.novos).toHaveLength(1);
+  });
+
+  it("primeiros contatos da semana descontam da meta", () => {
+    const leads = [lead("novo"), lead("seg", { stage: "contatado" })];
+    const q = run({
+      leads,
+      findings: [finding("novo")],
+      contacts: [contact("seg", "2026-11-16T10:00:00-03:00")],
+      channelContacts: [{ sentAt: new Date("2026-11-16T10:00:00-03:00") }],
+    });
+    expect(q.quota).toBe(12); // (25 − 1) ÷ 2
+  });
+
+  it("frente sem texto não tem novos nem follow-ups", () => {
+    const q = run({
+      front: { ...front, messageTemplate: null, followUpTemplate: null },
+      leads: [lead("a"), lead("fu", { stage: "contatado" })],
+      findings: [finding("a")],
+      contacts: [contact("fu", "2026-11-13T16:00:00-03:00")],
+    });
+    expect(q.novos).toHaveLength(0);
+    expect(q.followUps).toHaveLength(0);
+    expect(q.excluded.semTexto).toBe(true);
+  });
+
+  it("frente com engajamento barra quem não foi medido", () => {
+    const q = run({
+      front: { ...front, usesEngagement: true },
+      leads: [lead("a")],
+      findings: [finding("a")],
+    });
+    expect(q.novos).toHaveLength(0);
+    expect(q.excluded.semEngajamento).toBe(1);
+  });
+
+  it("respondeu aparece na lista de respostas", () => {
+    const q = run({ leads: [lead("r", { stage: "respondeu" })] });
+    expect(q.replied.map((l) => l.id)).toEqual(["r"]);
+  });
+
+  it("intervalo desde o último envio do canal", () => {
+    const q = run({ channelContacts: [{ sentAt: new Date(QUI.getTime() - 60_000) }] });
+    expect(q.waitMs).toBe(120_000);
   });
 });
