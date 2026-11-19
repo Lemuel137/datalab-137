@@ -40,17 +40,27 @@ curl -I https://<url-do-app>/login
 
 No painel do app, aba **Settings → Domains**: adicione `app.datalab137.com`. O DigitalOcean devolve o registro CNAME a criar no seu DNS. Depois de propagar, o certificado sai sozinho.
 
-## 6. Migrações no primeiro deploy
+## 6. Migrações
 
-O app não migra sozinho, de propósito: migração automática em produção é como se perde dado. Rode uma vez, do seu computador, apontando para o banco do DigitalOcean:
+O app não migra sozinho, de propósito. E a migração tem que rodar **antes** do push: o app publica a cada push na `main`, e código novo com banco antigo quebra as telas. Migração que só acrescenta coluna pode rodar com o app antigo no ar.
+
+**Última aplicada em produção: `0003_messy_wendigo` (19/11/2026).**
+
+O banco é o "dev database" do App Platform (`dev-db-767412`), e ele tem três particularidades medidas em 19/11/2026:
+
+- **Não aparece em `doctl databases list`.** O endereço sai só pelo painel: app → componente do banco → Connection Details. Clique em **show** antes de copiar, senão a senha vem mascarada.
+- **Só aceita conexão de fora com a caixa "Add app as a trusted source" desmarcada** (Settings → Trusted Sources). Desmarque só durante a migração e marque de novo no fim. Não há lista de IPs.
+- **`pnpm db:migrate` não funciona**: o usuário do banco não pode criar o schema de controle do drizzle. Use o script do projeto, que aplica os arquivos de `drizzle/` numa transação:
 
 ```bash
-export DATABASE_URL="$(doctl databases connection <id-do-banco> --format URI --no-header)"
-pnpm db:migrate
-psql "$DATABASE_URL" -f drizzle/seed-fronts.sql
+export DATABASE_URL='postgres://usuario:senha@host:25060/banco?sslmode=require'
+node scripts/migrar-producao.ts 4            # ensaio, desfaz no fim
+node scripts/migrar-producao.ts 4 --gravar   # aplica a partir da 0004
 ```
 
-Depois de criar o cluster com `doctl databases list`, pegue o id. O URI vem como `postgres://...` com SSL obrigatório.
+O número é a primeira migração ainda não aplicada. Como não há tabela de controle, atualize a linha "Última aplicada" acima a cada migração gravada.
+
+Esse tipo de banco não tem backup automático. Antes de migrar, copie as tabelas.
 
 ## Custos
 
