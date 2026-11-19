@@ -8,7 +8,7 @@ import type { LeadActionState } from "@/contracts/journey";
 function refresh(leadId: string) {
   revalidatePath(`/leads/${leadId}`);
   revalidatePath("/leads");
-  revalidatePath("/aprovacao");
+  revalidatePath("/fila");
 }
 
 export async function setStage(

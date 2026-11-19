@@ -29,11 +29,11 @@ export default async function Home() {
       </dl>
 
       <nav className="flex gap-4 text-sm">
+        <Link href="/fila" className="underline">
+          fila de hoje
+        </Link>
         <Link href="/leads" className="underline">
           leads
-        </Link>
-        <Link href="/aprovacao" className="underline">
-          aprovação de lote
         </Link>
         <form action={sair}>
           <button type="submit" className="underline">

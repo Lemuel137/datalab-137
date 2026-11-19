@@ -20,14 +20,14 @@ Lemuel, fundador, único usuário na v1. Mono-tenant, com login. Sem cadastro p�
 2. Importar leads gerados pela busca (JSON de dossiê e CSV do qualificador) para uma frente.
 3. Qualificar lead: registrar achado verificado com evidência (URL, data, o que foi visto) e nível de confiança.
 4. Seguir o funil: importado, qualificado, aprovado para abordagem, contatado, respondeu, diagnóstico enviado, reunião, fechado, descartado.
-5. Aprovar lote respeitando o limite diário do canal.
+5. Abrir a fila do dia: leads novos pela meta semanal da frente, follow-ups que vencem e respostas, respeitando o limite diário e o intervalo do canal.
 6. Registrar contato (canal, data, texto enviado, status) e um único follow-up.
 7. Gerar dossiê em tela e carta-diagnóstico.
 8. Ler painel por segmento e frente: abordagens, respostas de pessoa, diagnósticos, reuniões, fechamentos.
 
 ## Regras de negócio que o sistema deve garantir
 
-- Nada é enviado sem marcação "aprovado para abordagem".
+- Nada entra na fila sem achado válido pela política da frente: medido por script nas últimas 24 horas, ou conferido no navegador no dia. A etapa "aprovado para abordagem" deixou de ser um passo manual.
 - Achado verificado com evidência é obrigatório **somente a partir de** "aprovado para abordagem". Lead importado e qualificado pode existir sem achado.
 - Toda afirmação sobre um prospect precisa apontar para um achado com URL e data.
 - Limite diário por canal, configurável, semeado com os valores atuais: Instagram DM 15/dia, WhatsApp 20/dia, uma a cada 2 ou 3 minutos.
@@ -37,7 +37,7 @@ Lemuel, fundador, único usuário na v1. Mono-tenant, com login. Sem cadastro p�
 
 ## Contexto operacional
 
-- O envio continua manual na v1. O sistema registra, aprova e mede.
+- O envio continua manual. O sistema abre a conversa com o texto, registra e mede; nunca dispara.
 - Fonte da verdade: este sistema. Quando ele estiver no ar, `config-frentes.md` e a memória de prospecção deixam de ser consultados para operação e passam a ser apenas histórico.
 - Domínio: `app.datalab137.com`.
 
