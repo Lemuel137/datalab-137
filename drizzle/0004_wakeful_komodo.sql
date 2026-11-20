@@ -1,4 +1,4 @@
-ALTER TABLE "findings" ADD COLUMN "hook_by" text;--> statement-breakpoint
+ALTER TABLE "findings" ADD COLUMN IF NOT EXISTS "hook_by" text;--> statement-breakpoint
 -- Frente de delivery (pizzaria): entra pelo Captor, achado remedido por script.
 INSERT INTO "fronts" ("name", "slug", "channel", "daily_limit", "active", "uses_engagement", "finding_policy", "weekly_target", "message_template", "follow_up_template")
 VALUES (

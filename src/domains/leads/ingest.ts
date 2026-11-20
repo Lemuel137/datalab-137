@@ -1,9 +1,16 @@
 import "server-only";
-import { and, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, ne, or, sql, type SQL } from "drizzle-orm";
 import { db } from "@/db/client";
 import { contacts, findings, fronts, leads } from "@/db/schema";
-import { isBlockedCity, mergeFinding, type IngestPayload } from "@/contracts/ingest";
+import { isBlockedCity, mergeFinding, sourceKey, type IngestPayload } from "@/contracts/ingest";
+import { whatsappNumber } from "@/contracts/queue";
 import { normalizeInstagram, normalizePhone } from "./normalize";
+
+export class FrontNotFound extends Error {
+  constructor(slug: string) {
+    super(`Frente "${slug}" não existe.`);
+  }
+}
 
 export type IngestResult = {
   criados: number;
@@ -19,7 +26,7 @@ export type IngestResult = {
  */
 export async function ingestLeads(payload: IngestPayload): Promise<IngestResult> {
   const [front] = await db.select().from(fronts).where(eq(fronts.slug, payload.front)).limit(1);
-  if (!front) throw new Error(`Frente "${payload.front}" não existe.`);
+  if (!front) throw new FrontNotFound(payload.front);
 
   const out: IngestResult = {
     criados: 0,
@@ -35,38 +42,54 @@ export async function ingestLeads(payload: IngestPayload): Promise<IngestResult>
         out.foraLimeira++;
         continue;
       }
-      const whatsapp = normalizePhone(l.whatsapp);
+      // WhatsApp sempre com DDI; o endereço da fonte, na forma de comparação.
+      const whatsapp = whatsappNumber(l.whatsapp);
       const phone = normalizePhone(l.phone);
       const instagram = normalizeInstagram(l.instagram);
-      const site = l.sourceUrl ?? null;
+      const site = sourceKey(l.sourceUrl);
 
-      const same = [
-        whatsapp ? eq(leads.whatsapp, whatsapp) : undefined,
-        instagram ? eq(leads.instagram, instagram) : undefined,
-        site ? eq(leads.site, site) : undefined,
-      ].filter((c) => c !== undefined);
-      const [found] =
-        same.length === 0
-          ? []
-          : await tx
-              .select({ id: leads.id })
-              .from(leads)
-              .where(and(eq(leads.frontId, front.id), or(...same)))
-              .limit(1);
+      // Casa por um critério de cada vez, do mais forte ao mais fraco: com tudo num "ou",
+      // um lead que casa com dois registros cairia em um deles ao acaso.
+      const inFront = (cond: SQL) =>
+        tx
+          .select({ id: leads.id })
+          .from(leads)
+          .where(and(eq(leads.frontId, front.id), cond))
+          .orderBy(leads.createdAt)
+          .limit(1);
+      const criteria: (SQL | null)[] = [
+        // Importações antigas guardaram o número sem o 55.
+        whatsapp ? inArray(leads.whatsapp, [whatsapp, whatsapp.slice(2)]) : null,
+        instagram ? eq(leads.instagram, instagram) : null,
+        phone ? eq(leads.phone, phone) : null,
+        site ? sql`${leads.signals}->>'fonte' = ${site}` : null,
+      ];
+      let found: { id: string } | undefined;
+      for (const c of criteria) {
+        if (c && !found) [found] = await inFront(c);
+      }
+
+      // Só o que veio preenchido entra em signals: nulo não pode apagar cidade ou UF já gravadas.
+      const extra = Object.fromEntries(
+        Object.entries({ uf: l.uf, cidade: l.city, fonte: site }).filter(([, v]) => v != null),
+      );
+      const signals = { ...l.signals, ...extra };
 
       let leadId: string;
       if (found) {
         leadId = found.id;
         out.atualizados++;
+        // Contato existente nunca é trocado pela entrada: só preenche o que estava vazio.
+        // Sem isso, duas lojas com o mesmo endereço de fonte trocariam o WhatsApp uma da outra.
         await tx
           .update(leads)
           .set({
-            city: l.city ?? sql`${leads.city}`,
-            site: site ?? sql`${leads.site}`,
-            whatsapp: whatsapp ?? sql`${leads.whatsapp}`,
-            phone: phone ?? sql`${leads.phone}`,
-            instagram: instagram ?? sql`${leads.instagram}`,
-            signals: sql`${leads.signals} || ${JSON.stringify({ ...l.signals, uf: l.uf, cidade: l.city })}::jsonb`,
+            city: sql`coalesce(${leads.city}, ${l.city})`,
+            site: sql`coalesce(${leads.site}, ${l.sourceUrl ?? null})`,
+            whatsapp: sql`coalesce(${leads.whatsapp}, ${whatsapp})`,
+            phone: sql`coalesce(${leads.phone}, ${phone})`,
+            instagram: sql`coalesce(${leads.instagram}, ${instagram})`,
+            signals: sql`${leads.signals} || ${JSON.stringify(signals)}::jsonb`,
             updatedAt: new Date(),
           })
           .where(eq(leads.id, leadId));
@@ -78,12 +101,12 @@ export async function ingestLeads(payload: IngestPayload): Promise<IngestResult>
             frontId: front.id,
             name: l.name,
             city: l.city,
-            site,
+            site: l.sourceUrl ?? null,
             whatsapp,
             phone,
             instagram,
             source: "ingest",
-            signals: { ...l.signals, uf: l.uf, cidade: l.city },
+            signals,
           })
           .returning({ id: leads.id });
         leadId = created.id;

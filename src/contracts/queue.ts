@@ -104,7 +104,7 @@ export function missingVars(template: string, v: MessageVars): string[] {
 }
 
 /** Número de WhatsApp com DDI, ou null quando o campo não é um número só (ramal, dois números). */
-function whatsappNumber(raw: string | null): string | null {
+export function whatsappNumber(raw: string | null | undefined): string | null {
   const digits = (normalizePhone(raw) ?? "").replace(/^0+/, "");
   if (digits.length === 10 || digits.length === 11) return `55${digits}`;
   if ((digits.length === 12 || digits.length === 13) && digits.startsWith("55")) return digits;
@@ -218,7 +218,8 @@ export function selectQueue(i: {
     for (const r of rows) m.set(r.leadId, [...(m.get(r.leadId) ?? []), r]);
     return m;
   };
-  const findingsOf = group(i.findings);
+  // Achado vetado pela IA não sustenta mensagem: não conta como achado na fila.
+  const findingsOf = group(i.findings.filter((f) => f.hookBy !== "vetado"));
   const contactsOf = group(i.contacts);
 
   const sentToday = i.channelContacts.filter((c) => spDay(c.sentAt) === today).length;

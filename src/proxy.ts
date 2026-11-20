@@ -9,12 +9,22 @@ function chave() {
   return new TextEncoder().encode(secret);
 }
 
+const INGEST_PATHS = ["/api/ingest/leads", "/api/ingest/pendentes"];
+
+/**
+ * A porta de entrada de leads não usa a sessão de login: cada rota confere a
+ * própria chave (INGEST_TOKEN). O desvio vale só para os caminhos exatos, e
+ * nunca para pedido de server action, que depende deste proxy para exigir login.
+ */
+export function isIngestRequest(pathname: string, headers: Headers): boolean {
+  return INGEST_PATHS.includes(pathname) && !headers.has("next-action");
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // A porta de entrada de leads não usa a sessão de login: confere a própria chave
-  // (INGEST_TOKEN) em cada rota de src/app/api/ingest.
-  if (pathname.startsWith("/api/ingest/")) return NextResponse.next();
+  if (isIngestRequest(pathname, request.headers)) return NextResponse.next();
+
   const token = request.cookies.get(COOKIE)?.value;
 
   let autenticado = false;

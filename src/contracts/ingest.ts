@@ -47,10 +47,66 @@ const leadIn = z
     message: "Lead sem WhatsApp, telefone ou Instagram não pode ser abordado.",
   });
 
+// Sinais que a própria fila escreve: não podem chegar de fora.
+const RESERVED_SIGNALS = ["pulado_em"];
+
 export const ingestSchema = z.object({
   front: z.string().regex(/^[a-z0-9-]{2,40}$/),
   leads: z.array(leadIn).min(1).max(300),
 });
+
+const envelope = z.object({
+  front: z.string().regex(/^[a-z0-9-]{2,40}$/),
+  leads: z.array(z.unknown()).min(1).max(300),
+});
+
+export type IngestParse =
+  | { ok: false; erro: string }
+  | {
+      ok: true;
+      front: string;
+      leads: IngestLead[];
+      rejeitados: { indice: number; erro: string }[];
+    };
+
+/**
+ * Valida o pedido lead a lead: um registro ruim volta na lista de rejeitados
+ * com o índice, e os outros entram. Só o envelope errado recusa o pedido todo.
+ */
+export function parseIngest(json: unknown): IngestParse {
+  const env = envelope.safeParse(json);
+  if (!env.success) {
+    const i = env.error.issues[0];
+    return { ok: false, erro: `${i.path.join(".") || "corpo"}: ${i.message}` };
+  }
+  const leads: IngestLead[] = [];
+  const rejeitados: { indice: number; erro: string }[] = [];
+  env.data.leads.forEach((raw, indice) => {
+    const r = leadIn.safeParse(raw);
+    if (!r.success) {
+      const i = r.error.issues[0];
+      rejeitados.push({ indice, erro: [i.path.join("."), i.message].filter(Boolean).join(": ") });
+      return;
+    }
+    for (const k of RESERVED_SIGNALS) delete r.data.signals[k];
+    leads.push(r.data);
+  });
+  return { ok: true, front: env.data.front, leads, rejeitados };
+}
+
+/**
+ * Chave de comparação do endereço da fonte (cardápio): sem protocolo, www,
+ * query, âncora e barra final. O caminho mantém a caixa, que pode ser parte do slug.
+ */
+export function sourceKey(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    return u.hostname.toLowerCase().replace(/^www\./, "") + u.pathname.replace(/\/+$/, "");
+  } catch {
+    return null;
+  }
+}
 
 export type IngestPayload = z.infer<typeof ingestSchema>;
 export type IngestLead = IngestPayload["leads"][number];

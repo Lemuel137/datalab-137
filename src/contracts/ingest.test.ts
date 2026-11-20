@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ingestSchema, isBlockedCity, mergeFinding } from "./ingest";
+import { ingestSchema, isBlockedCity, mergeFinding, parseIngest, sourceKey } from "./ingest";
 
 const finding = {
   summary: "a Calabresa 2 Queijos está sem descrição, junto com outras 7 pizzas",
@@ -95,5 +95,49 @@ describe("mergeFinding", () => {
       action: "replace",
       removeIds: [],
     });
+  });
+});
+
+describe("achados da revisão da etapa 2", () => {
+  it("um lead ruim não derruba o lote: os bons entram e o ruim volta com o índice", () => {
+    const r = parseIngest({
+      front: "delivery",
+      leads: [
+        lead,
+        { name: "Sem contato" },
+        { ...lead, findings: [{ ...finding, summary: "curto" }] },
+      ],
+    });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.leads).toHaveLength(1);
+    expect(r.rejeitados.map((x) => x.indice)).toEqual([1, 2]);
+    expect(r.rejeitados[0].erro).toContain("WhatsApp");
+  });
+  it("envelope errado continua sendo erro do pedido inteiro", () => {
+    expect(parseIngest({ front: "Delivery!", leads: [lead] }).ok).toBe(false);
+    expect(parseIngest({ front: "delivery", leads: [] }).ok).toBe(false);
+    expect(parseIngest("texto").ok).toBe(false);
+  });
+  it("sinais reservados da fila não entram por fora", () => {
+    const r = parseIngest({
+      front: "delivery",
+      leads: [{ ...lead, signals: { score: 9, pulado_em: "2026-11-20" } }],
+    });
+    expect(r.ok && r.leads[0].signals).toEqual({ score: 9 });
+  });
+  it("endereço da fonte é comparado sem query, barra final, www e protocolo", () => {
+    const base = "pedido.anota.ai/loja/pizzaria-x";
+    for (const u of [
+      "https://pedido.anota.ai/loja/pizzaria-x?f=ms",
+      "http://www.pedido.anota.ai/loja/pizzaria-x/",
+      "HTTPS://Pedido.Anota.ai/loja/pizzaria-x#topo",
+    ]) {
+      expect(sourceKey(u)).toBe(base);
+    }
+    expect(sourceKey("https://app.cardapioweb.com/Pizzaria_X")).toBe(
+      "app.cardapioweb.com/Pizzaria_X",
+    );
+    expect(sourceKey(null)).toBeNull();
   });
 });

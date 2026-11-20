@@ -422,3 +422,68 @@ describe("gancho e lado do cliente", () => {
     expect(q.excluded.semGancho.map((l) => l.id)).toEqual(["semgancho"]);
   });
 });
+
+describe("achado vetado", () => {
+  it("veto mais recente não esconde achado bom de outro tipo", () => {
+    const front: QFront = {
+      channel: "whatsapp",
+      dailyLimit: 20,
+      weeklyTarget: 25,
+      findingPolicy: "script",
+      messageTemplate: "Vi {gancho}. {achado}. {cliente}.",
+      followUpTemplate: null,
+      usesEngagement: false,
+      engagementMin: null,
+    };
+    const l: QLead = {
+      id: "a",
+      name: "A",
+      stage: "importado",
+      whatsapp: "47992706419",
+      phone: null,
+      instagram: null,
+      followers: null,
+      engagementPct: null,
+      signals: {},
+      createdAt: QUI,
+    };
+    const f = (min: number, over: Partial<QFinding>): QFinding => ({
+      leadId: "a",
+      summary: "achado bom com nome dos itens",
+      origin: "script",
+      verifiedAt: new Date(QUI.getTime() - min * 60_000),
+      evidenceUrl: "https://x",
+      hook: "o anúncio X",
+      customerSide: "quem chega não vê",
+      hookBy: "ia",
+      ...over,
+    });
+    const vetado = f(5, {
+      summary: "achado fraco",
+      hook: null,
+      customerSide: null,
+      hookBy: "vetado",
+    });
+    const q = selectQueue({
+      front,
+      leads: [l],
+      findings: [f(60, {}), vetado],
+      contacts: [],
+      channelContacts: [],
+      now: QUI,
+    });
+    expect(q.novos.map((n) => n.finding?.summary)).toEqual(["achado bom com nome dos itens"]);
+    // só vetado: fora da fila, sem contar como "falta gancho"
+    const q2 = selectQueue({
+      front,
+      leads: [l],
+      findings: [vetado],
+      contacts: [],
+      channelContacts: [],
+      now: QUI,
+    });
+    expect(q2.novos).toHaveLength(0);
+    expect(q2.excluded.semGancho).toHaveLength(0);
+    expect(q2.excluded.vencidos.map((x) => x.id)).toEqual(["a"]);
+  });
+});
