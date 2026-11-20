@@ -38,23 +38,28 @@ function toRow(it: QItem): QueueRow {
     findingWhen: it.finding ? fmtWhen.format(it.finding.verifiedAt) : null,
     byAi: it.finding?.hookBy === "ia",
     links: checkLinks(it.finding, s),
-    items: defectItems(it.finding?.summary ?? "", s),
+    items: measured(it.finding?.kind, it.finding?.summary ?? "", s),
     message: it.message,
     link: it.link,
   };
 }
 
-/** Itens que a medição apontou, para conferir sem abrir o cardápio. */
-function defectItems(summary: string, s: Record<string, unknown>) {
+/** O que a medição apontou, para conferir sem sair da tela: itens do cardápio ou reclamações. */
+function measured(kind: string | undefined, summary: string, s: Record<string, unknown>) {
+  const strings = (v: unknown) =>
+    Array.isArray(v) ? v.filter((n): n is string => typeof n === "string") : [];
+  if (kind === "avaliacao_sem_resposta") {
+    const names = strings(s.reclamacoes);
+    if (names.length === 0) return null;
+    const nota = typeof s.gmn_nota === "number" ? ` · nota ${s.gmn_nota} no Google` : "";
+    return { label: `ver as ${names.length} reclamações sem resposta${nota}`, names, long: true };
+  }
   const key = summary.includes("sem foto") ? "sem_foto" : "sem_descricao";
-  const list = s[`itens_${key}`];
-  const total = s[key];
-  if (!Array.isArray(list) || list.length === 0) return null;
-  return {
-    names: list.filter((n): n is string => typeof n === "string"),
-    total: typeof total === "number" ? total : list.length,
-    defect: key === "sem_foto" ? "sem foto" : "sem descrição",
-  };
+  const names = strings(s[`itens_${key}`]);
+  if (names.length === 0) return null;
+  const total = typeof s[key] === "number" ? s[key] : names.length;
+  const defect = key === "sem_foto" ? "sem foto" : "sem descrição";
+  return { label: `ver os itens ${defect} (${names.length} de ${total})`, names, long: false };
 }
 
 const CHANNEL_LABEL: Record<string, string> = {

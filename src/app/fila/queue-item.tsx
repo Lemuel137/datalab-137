@@ -17,7 +17,7 @@ export type QueueRow = {
   /** Onde conferir o achado: cardápio, anúncios, página. */
   links: { label: string; href: string }[];
   /** Itens que a medição apontou (até 12 nomes) e o total. */
-  items: { names: string[]; total: number; defect: string } | null;
+  items: { label: string; names: string[]; long: boolean } | null;
   message: string;
   link: string;
 };
@@ -90,12 +90,14 @@ export function QueueItem({
               )}
               {row.items && (
                 <details className="text-[13px] leading-5">
-                  <summary className="text-ink-muted hover:text-ink">
-                    ver os itens {row.items.defect} ({row.items.names.length} de {row.items.total})
-                  </summary>
-                  <ul className="mt-2 columns-2 gap-6 text-ink-muted">
+                  <summary className="text-ink-muted hover:text-ink">{row.items.label}</summary>
+                  <ul
+                    className={`mt-2 text-ink-muted ${
+                      row.items.long ? "flex flex-col gap-2" : "columns-2 gap-6"
+                    }`}
+                  >
                     {row.items.names.map((n) => (
-                      <li key={n} className="truncate">
+                      <li key={n} className={row.items?.long ? "" : "truncate"}>
                         {n}
                       </li>
                     ))}
