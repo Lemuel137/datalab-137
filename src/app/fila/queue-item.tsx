@@ -14,7 +14,10 @@ export type QueueRow = {
   findingWhen: string | null;
   /** Gancho e lado do cliente escritos pela rotina de IA: vale ler antes de enviar. */
   byAi: boolean;
-  evidenceUrl: string | null;
+  /** Onde conferir o achado: cardápio, anúncios, página. */
+  links: { label: string; href: string }[];
+  /** Itens que a medição apontou (até 12 nomes) e o total. */
+  items: { names: string[]; total: number; defect: string } | null;
   message: string;
   link: string;
 };
@@ -63,25 +66,43 @@ export function QueueItem({
 
         <div className="flex flex-col gap-4 px-5 pb-5">
           {row.finding && (
-            <p>
-              {row.finding}{" "}
-              <span className="text-[13px] text-ink-muted">
-                {row.findingWhen && `Verificado ${row.findingWhen}`}
-                {row.evidenceUrl && (
-                  <>
-                    {" · "}
+            <div className="flex flex-col gap-3">
+              <p>
+                {row.finding}
+                {row.findingWhen && (
+                  <span className="text-[13px] text-ink-muted"> Verificado {row.findingWhen}.</span>
+                )}
+              </p>
+              {row.links.length > 0 && (
+                <p className="flex flex-wrap gap-2">
+                  {row.links.map((l) => (
                     <a
-                      href={row.evidenceUrl}
+                      key={l.href}
+                      href={l.href}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-brand-text"
+                      className="btn text-[13px] text-brand-text"
                     >
-                      ver evidência
+                      {l.label} ↗
                     </a>
-                  </>
-                )}
-              </span>
-            </p>
+                  ))}
+                </p>
+              )}
+              {row.items && (
+                <details className="text-[13px] leading-5">
+                  <summary className="text-ink-muted hover:text-ink">
+                    ver os itens {row.items.defect} ({row.items.names.length} de {row.items.total})
+                  </summary>
+                  <ul className="mt-2 columns-2 gap-6 text-ink-muted">
+                    {row.items.names.map((n) => (
+                      <li key={n} className="truncate">
+                        {n}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+            </div>
           )}
 
           <textarea

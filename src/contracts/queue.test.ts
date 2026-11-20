@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   businessDaysBetween,
+  checkLinks,
   contactLink,
   dailyQuota,
   gapWaitMs,
@@ -486,5 +487,36 @@ describe("achado vetado", () => {
     expect(q2.novos).toHaveLength(0);
     expect(q2.excluded.semGancho).toHaveLength(0);
     expect(q2.excluded.vencidos.map((x) => x.id)).toEqual(["a"]);
+  });
+});
+
+describe("links de conferência", () => {
+  const base = { kind: "cardapio_fraco", evidenceUrl: "https://pedido.anota.ai/loja/x" };
+
+  it("cardápio, anúncios na Biblioteca e página, nessa ordem", () => {
+    expect(
+      checkLinks(base, { pagina_id: "108199067395243", pagina_fb: "https://www.facebook.com/x/" }),
+    ).toEqual([
+      { label: "abrir cardápio", href: "https://pedido.anota.ai/loja/x" },
+      {
+        label: "ver anúncios ativos",
+        href: "https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=BR&view_all_page_id=108199067395243",
+      },
+      { label: "página no Facebook", href: "https://www.facebook.com/x/" },
+    ]);
+  });
+  it("outro tipo de achado chama a evidência pelo nome genérico", () => {
+    expect(checkLinks({ kind: "destino_anuncio", evidenceUrl: "https://loja.com/p" }, {})).toEqual([
+      { label: "abrir evidência", href: "https://loja.com/p" },
+    ]);
+  });
+  it("só vira link o que é endereço http e id numérico", () => {
+    expect(
+      checkLinks(
+        { kind: "outro", evidenceUrl: "prospeccao/pdfs/diagnostico.pdf" },
+        { pagina_id: "abc<script>", pagina_fb: "javascript:alert(1)" },
+      ),
+    ).toEqual([]);
+    expect(checkLinks(null, {})).toEqual([]);
   });
 });

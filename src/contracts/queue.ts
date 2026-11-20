@@ -154,6 +154,7 @@ export type QFinding = {
   origin: string;
   verifiedAt: Date;
   evidenceUrl: string;
+  kind?: string;
   hook: string | null;
   customerSide: string | null;
   hookBy?: string | null;
@@ -328,4 +329,36 @@ export function selectQueue(i: {
     replied: i.leads.filter((l) => l.stage === "respondeu"),
     excluded,
   };
+}
+
+export type CheckLink = { label: string; href: string };
+
+const isHttp = (v: unknown): v is string => typeof v === "string" && /^https?:\/\//.test(v);
+
+/**
+ * Onde conferir um achado antes de enviar: a evidência medida, os anúncios
+ * ativos da página e a página em si. Só entra endereço http e id numérico,
+ * porque esses valores chegam de fora pela porta de entrada.
+ */
+export function checkLinks(
+  finding: { kind?: string; evidenceUrl: string } | null,
+  signals: Record<string, unknown>,
+): CheckLink[] {
+  const links: CheckLink[] = [];
+  if (finding && isHttp(finding.evidenceUrl)) {
+    links.push({
+      label: finding.kind === "cardapio_fraco" ? "abrir cardápio" : "abrir evidência",
+      href: finding.evidenceUrl,
+    });
+  }
+  const pageId = signals.pagina_id;
+  if (typeof pageId === "string" && /^\d{5,20}$/.test(pageId)) {
+    links.push({
+      label: "ver anúncios ativos",
+      href: `https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=BR&view_all_page_id=${pageId}`,
+    });
+  }
+  if (isHttp(signals.pagina_fb))
+    links.push({ label: "página no Facebook", href: signals.pagina_fb });
+  return links;
 }

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { activeFronts, buildQueue } from "@/domains/outreach/queue";
-import type { QItem } from "@/contracts/queue";
+import { checkLinks, type QItem } from "@/contracts/queue";
 import { QueueItem, type QueueRow } from "./queue-item";
 
 export const dynamic = "force-dynamic";
@@ -29,7 +29,6 @@ const fmtTime = new Intl.DateTimeFormat("pt-BR", {
 function toRow(it: QItem): QueueRow {
   const s = it.lead.signals;
   const place = [s.cidade, s.uf].filter((v) => typeof v === "string" && v).join("/");
-  const url = it.finding?.evidenceUrl ?? "";
   return {
     leadId: it.lead.id,
     name: it.lead.name,
@@ -38,9 +37,23 @@ function toRow(it: QItem): QueueRow {
     finding: it.finding?.summary ?? null,
     findingWhen: it.finding ? fmtWhen.format(it.finding.verifiedAt) : null,
     byAi: it.finding?.hookBy === "ia",
-    evidenceUrl: /^https?:\/\//.test(url) ? url : null,
+    links: checkLinks(it.finding, s),
+    items: defectItems(it.finding?.summary ?? "", s),
     message: it.message,
     link: it.link,
+  };
+}
+
+/** Itens que a medição apontou, para conferir sem abrir o cardápio. */
+function defectItems(summary: string, s: Record<string, unknown>) {
+  const key = summary.includes("sem foto") ? "sem_foto" : "sem_descricao";
+  const list = s[`itens_${key}`];
+  const total = s[key];
+  if (!Array.isArray(list) || list.length === 0) return null;
+  return {
+    names: list.filter((n): n is string => typeof n === "string"),
+    total: typeof total === "number" ? total : list.length,
+    defect: key === "sem_foto" ? "sem foto" : "sem descrição",
   };
 }
 
