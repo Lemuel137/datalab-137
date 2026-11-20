@@ -102,3 +102,15 @@ export const contacts = pgTable(
   },
   (t) => [index("contacts_lead_idx").on(t.leadId)],
 );
+
+// Briefing de prospecção respondido por quem vai usar a ferramenta (sem login, por link com token).
+export const briefings = pgTable("briefings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  token: text("token").notNull().unique(),
+  // Para quem é o briefing, como o Lemuel nomeou ao criar o link.
+  title: text("title").notNull(),
+  answers: jsonb("answers").$type<Record<string, string>>().notNull().default({}),
+  submittedAt: timestamp("submitted_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});

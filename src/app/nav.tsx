@@ -8,12 +8,14 @@ const ITEMS = [
   { href: "/fila", label: "Fila" },
   { href: "/leads", label: "Leads" },
   { href: "/frentes", label: "Frentes" },
+  { href: "/briefings", label: "Briefings" },
 ];
 
 /** Barra fixa do topo. Não aparece no login. */
 export function Nav() {
   const pathname = usePathname();
-  if (pathname === "/login") return null;
+  // Sem barra no login e na página pública do briefing (quem responde não é usuário do CRM).
+  if (pathname === "/login" || pathname.startsWith("/b/")) return null;
 
   return (
     <header className="border-b border-line">

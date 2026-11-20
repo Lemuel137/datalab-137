@@ -20,10 +20,23 @@ export function isIngestRequest(pathname: string, headers: Headers): boolean {
   return INGEST_PATHS.includes(pathname) && !headers.has("next-action");
 }
 
+// Página e rota do briefing, com o token no próprio endereço (ver src/contracts/briefing.ts).
+const PUBLIC_PATHS = /^\/(?:b|api\/briefing)\/[A-Za-z0-9_-]{32}$/;
+
+/**
+ * O briefing é respondido por quem não tem login (o endereço com token é a chave).
+ * Como no desvio da porta de entrada: só o caminho exato, e nunca um pedido de
+ * server action, que depende deste proxy para exigir sessão.
+ */
+export function isPublicRequest(pathname: string, headers: Headers): boolean {
+  return PUBLIC_PATHS.test(pathname) && !headers.has("next-action");
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (isIngestRequest(pathname, request.headers)) return NextResponse.next();
+  if (isPublicRequest(pathname, request.headers)) return NextResponse.next();
 
   const token = request.cookies.get(COOKIE)?.value;
 
