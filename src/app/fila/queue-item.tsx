@@ -16,6 +16,8 @@ export type QueueRow = {
   byAi: boolean;
   /** Preenchido quando o achado exige conferência e ainda não foi conferido hoje. */
   findingId: string | null;
+  /** O que conferir, quando o tipo do achado exige conferência. */
+  checkText: string | null;
   /** Onde conferir o achado: cardápio, anúncios, página. */
   links: { label: string; href: string }[];
   /** Itens que a medição apontou (até 12 nomes) e o total. */
@@ -136,11 +138,10 @@ export function QueueItem({
             >
               <input type="hidden" name="findingId" value={row.findingId} />
               <p className="min-w-0 flex-1 text-sm">
-                Abra as avaliações e confirme que as reclamações continuam sem resposta. O envio só
-                libera depois disso.
+                {row.checkText} O envio só libera depois disso.
               </p>
               <button type="submit" disabled={checking} className="btn btn-brand">
-                conferi as avaliações
+                conferi agora
               </button>
             </form>
           )}

@@ -7,6 +7,7 @@ import { z } from "zod";
 export const FINDING_KINDS = [
   "pixel_ausente",
   "destino_anuncio",
+  "anuncio_parado",
   "cardapio_fraco",
   "avaliacao_sem_resposta",
   "preco_inconsistente",
@@ -19,6 +20,7 @@ export type FindingKind = (typeof FINDING_KINDS)[number];
 export const FINDING_KIND_LABEL: Record<FindingKind, string> = {
   pixel_ausente: "Pixel ausente",
   destino_anuncio: "Destino do anúncio",
+  anuncio_parado: "Anúncio parado",
   cardapio_fraco: "Cardápio fraco",
   avaliacao_sem_resposta: "Avaliação sem resposta",
   preco_inconsistente: "Preço inconsistente",

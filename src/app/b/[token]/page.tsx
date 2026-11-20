@@ -30,8 +30,8 @@ export default async function BriefingPage({ params }: { params: Promise<{ token
           São doze perguntas sobre o seu negócio e o cliente que você procura. As que falam de quem
           você quer atender são abertas, sem opção para marcar: escreva do seu jeito, como falaria
           numa conversa. As que falam de fato (região, preço, canal) são diretas. É com essas
-          respostas que a sua lista de prospecção vai ser montada. Dá para salvar e terminar
-          depois, neste mesmo endereço.
+          respostas que a sua lista de prospecção vai ser montada. Dá para salvar e terminar depois,
+          neste mesmo endereço.
         </p>
       </header>
       <BriefingForm token={b.token} initial={b.answers} submitted={Boolean(b.submittedAt)} />

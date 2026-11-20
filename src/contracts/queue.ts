@@ -72,11 +72,22 @@ export type FindingPolicy = (typeof FINDING_POLICIES)[number];
  * Cardápio muda de um dia para o outro; avaliação no Google fica semanas no ar,
  * e relê-la custa crédito, então vale 7 dias.
  */
-const SCRIPT_VALID_HOURS: Record<string, number> = { avaliacao_sem_resposta: 7 * 24 };
+const SCRIPT_VALID_HOURS: Record<string, number> = {
+  avaliacao_sem_resposta: 7 * 24,
+  // A data de início de um anúncio não muda; o que muda é entrar anúncio novo, e isso a
+  // conferência obrigatória pega. Vale 14 dias a partir da coleta.
+  anuncio_parado: 14 * 24,
+};
 const DEFAULT_SCRIPT_VALID_HOURS = 24;
 
 /** Quando há mais de um achado válido, qual abre a mensagem. Quem não está na lista vai depois. */
-const KIND_PRIORITY = ["avaliacao_sem_resposta", "destino_anuncio", "cardapio_fraco"];
+// Achado sobre o anúncio vem primeiro: é o assunto do que a agência vende.
+const KIND_PRIORITY = [
+  "destino_anuncio",
+  "anuncio_parado",
+  "avaliacao_sem_resposta",
+  "cardapio_fraco",
+];
 const kindRank = (kind: string | undefined) => {
   const i = KIND_PRIORITY.indexOf(kind ?? "");
   return i === -1 ? KIND_PRIORITY.length : i;
@@ -225,7 +236,19 @@ export type QItem = {
  * Tipos de achado que o Lemuel confere no navegador antes de cada envio, mesmo
  * medidos por script: a reclamação pode ter sido respondida depois da medição.
  */
-const CHECK_KINDS = ["avaliacao_sem_resposta"];
+const CHECK_INSTRUCTION: Record<string, string> = {
+  avaliacao_sem_resposta:
+    "Abra as avaliações e confirme que as reclamações continuam sem resposta.",
+  // O Captor baixa uma amostra dos anúncios de cada página, não todos.
+  anuncio_parado:
+    "Abra a Biblioteca de Anúncios e confirme que não há anúncio mais novo que a data do achado.",
+};
+const CHECK_KINDS = Object.keys(CHECK_INSTRUCTION);
+
+/** O que conferir antes de enviar, para os tipos que exigem conferência; null para os demais. */
+export function checkInstruction(kind: string | undefined): string | null {
+  return CHECK_INSTRUCTION[kind ?? ""] ?? null;
+}
 
 export function needsCheck(
   finding: { kind?: string; confirmedAt?: Date | null } | null,
@@ -402,6 +425,7 @@ export type CheckLink = { label: string; href: string };
 const EVIDENCE_LABEL: Record<string, string> = {
   cardapio_fraco: "abrir cardápio",
   avaliacao_sem_resposta: "abrir avaliações",
+  anuncio_parado: "ver anúncios ativos",
 };
 
 const isHttp = (v: unknown): v is string => typeof v === "string" && /^https?:\/\//.test(v);
@@ -431,5 +455,6 @@ export function checkLinks(
   }
   if (isHttp(signals.pagina_fb))
     links.push({ label: "página no Facebook", href: signals.pagina_fb });
-  return links;
+  // A evidência do anúncio parado é a própria Biblioteca: não repete o mesmo endereço.
+  return links.filter((l, i) => links.findIndex((x) => x.href === l.href) === i);
 }

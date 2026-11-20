@@ -112,7 +112,7 @@ export async function markSent(
       (it) => it.lead.id === leadId,
     );
     if (kind === "first" && item?.needsCheck) {
-      return { ok: false, message: "Confira as avaliações no Google antes de registrar o envio." };
+      return { ok: false, message: "Confira a evidência do achado antes de registrar o envio." };
     }
     // Fora da fila (achado venceu ou limite estourou depois de abrir a conversa): o envio
     // já aconteceu à mão, então grava mesmo assim. Recusar criaria uma segunda "primeira mensagem".

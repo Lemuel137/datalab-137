@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { activeFronts, buildQueue } from "@/domains/outreach/queue";
-import { checkLinks, type QItem } from "@/contracts/queue";
+import { checkInstruction, checkLinks, type QItem } from "@/contracts/queue";
 import { QueueItem, type QueueRow } from "./queue-item";
 
 export const dynamic = "force-dynamic";
@@ -38,6 +38,7 @@ function toRow(it: QItem): QueueRow {
     findingWhen: it.finding ? fmtWhen.format(it.finding.verifiedAt) : null,
     byAi: it.finding?.hookBy === "ia",
     findingId: it.needsCheck && it.finding && "id" in it.finding ? String(it.finding.id) : null,
+    checkText: checkInstruction(it.finding?.kind),
     links: checkLinks(it.finding, s),
     items: measured(it.finding?.kind, it.finding?.summary ?? "", s),
     message: it.message,

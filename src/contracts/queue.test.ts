@@ -1,15 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
   businessDaysBetween,
+  checkInstruction,
   checkLinks,
   contactLink,
   dailyQuota,
   gapWaitMs,
   missingVars,
+  needsCheck,
   renderMessage,
   selectQueue,
   spDay,
   validFinding,
+  validFindings,
   weekStart,
   type QContact,
   type QFinding,
@@ -671,5 +674,56 @@ describe("conferência obrigatória da avaliação", () => {
   });
   it("achado de cardápio não pede conferência", () => {
     expect(check(f("cardapio_fraco", null))).toBe(false);
+  });
+});
+
+describe("achado de anúncio parado", () => {
+  const f = (kind: string, hoursAgo: number, confirmedAt: Date | null = null) => ({
+    kind,
+    origin: "script",
+    verifiedAt: new Date(QUI.getTime() - hoursAgo * 3600_000),
+    confirmedAt,
+  });
+
+  it("vale 14 dias e sempre pede conferência", () => {
+    expect(validFinding("script", [f("anuncio_parado", 13 * 24)], QUI)).not.toBeNull();
+    expect(validFinding("script", [f("anuncio_parado", 15 * 24)], QUI)).toBeNull();
+    expect(needsCheck(f("anuncio_parado", 1), QUI)).toBe(true);
+    expect(needsCheck(f("anuncio_parado", 1, new Date("2026-11-19T08:00:00-03:00")), QUI)).toBe(
+      false,
+    );
+  });
+
+  it("achado sobre anúncio vem antes de avaliação e de cardápio", () => {
+    const ordem = validFindings(
+      "script",
+      [
+        f("cardapio_fraco", 1),
+        f("avaliacao_sem_resposta", 2),
+        f("anuncio_parado", 3),
+        f("destino_anuncio", 4),
+      ],
+      QUI,
+    ).map((x) => x.kind);
+    expect(ordem).toEqual([
+      "destino_anuncio",
+      "anuncio_parado",
+      "avaliacao_sem_resposta",
+      "cardapio_fraco",
+    ]);
+  });
+
+  it("link da Biblioteca não aparece duas vezes", () => {
+    const href =
+      "https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=BR&view_all_page_id=108199067395243";
+    expect(
+      checkLinks({ kind: "anuncio_parado", evidenceUrl: href }, { pagina_id: "108199067395243" }),
+    ).toEqual([{ label: "ver anúncios ativos", href }]);
+  });
+
+  it("cada tipo com conferência tem a sua instrução", () => {
+    expect(checkInstruction("anuncio_parado")).toContain("Biblioteca");
+    expect(checkInstruction("avaliacao_sem_resposta")).toContain("avaliações");
+    expect(checkInstruction("cardapio_fraco")).toBeNull();
   });
 });
