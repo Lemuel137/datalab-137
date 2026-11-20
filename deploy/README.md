@@ -42,25 +42,20 @@ No painel do app, aba **Settings → Domains**: adicione `app.datalab137.com`. O
 
 ## 6. Migrações
 
-O app não migra sozinho, de propósito. E a migração tem que rodar **antes** do push: o app publica a cada push na `main`, e código novo com banco antigo quebra as telas. Migração que só acrescenta coluna pode rodar com o app antigo no ar.
+**O app migra sozinho ao subir** (desde 20/11/2026). A cada publicação, antes de atender pedidos, ele aplica as migrações pendentes de `drizzle/` e registra em `public.app_migrations`. O código está em `src/db/migrations.ts` e é chamado por `src/instrumentation.ts`.
 
-**Última aplicada em produção: `0004_wakeful_komodo` (20/11/2026).**
+- Se uma migração falhar, ela é desfeita, o processo sai e a publicação nova não entra no ar. A versão anterior continua servindo. Veja o motivo em `doctl apps logs <id> web --type run`, procurando por `[migrações]`.
+- O banco é o "dev database" do App Platform (`dev-db-767412`), que só aceita conexão do próprio app e não tem backup automático. Por isso não se migra mais de fora.
 
-O banco é o "dev database" do App Platform (`dev-db-767412`), e ele tem três particularidades medidas em 19/11/2026:
+**Regra para escrever migração:** como não há cópia de segurança antes, migração nova só **acrescenta** (coluna, tabela, índice) e precisa poder rodar duas vezes sem erro: `ADD COLUMN IF NOT EXISTS`, `CREATE TABLE IF NOT EXISTS`, `ON CONFLICT DO NOTHING`, `UPDATE` com condição que não se repete. Nada de `DROP` nem de `UPDATE` que reescreve dado existente. Se um dia precisar de uma dessas, é caso de abrir o banco à mão, copiar as tabelas antes e usar `scripts/migrar-producao.ts`.
 
-- **Não aparece em `doctl databases list`.** O endereço sai só pelo painel: app → componente do banco → Connection Details. Clique em **show** antes de copiar, senão a senha vem mascarada.
-- **Só aceita conexão de fora com a caixa "Add app as a trusted source" desmarcada** (Settings → Trusted Sources). Desmarque só durante a migração e marque de novo no fim. Não há lista de IPs.
-- **`pnpm db:migrate` não funciona**: o usuário do banco não pode criar o schema de controle do drizzle. Use o script do projeto, que aplica os arquivos de `drizzle/` numa transação:
+O drizzle-kit gera o arquivo (`pnpm db:generate`); confira o SQL e acrescente o `IF NOT EXISTS` que ele não põe. `pnpm db:migrate` serve só para banco local.
 
-```bash
-export DATABASE_URL='postgres://usuario:senha@host:25060/banco?sslmode=require'
-node scripts/migrar-producao.ts 4            # ensaio, desfaz no fim
-node scripts/migrar-producao.ts 4 --gravar   # aplica a partir da 0004
-```
+Linha de base: `0004_wakeful_komodo` foi a última aplicada à mão em produção. Na primeira subida com o controle, o app marca de `0000` a `0004` como feitas e aplica da `0005` em diante.
 
-O número é a primeira migração ainda não aplicada. Como não há tabela de controle, atualize a linha "Última aplicada" acima a cada migração gravada.
+### Acesso de fora, só em emergência
 
-Esse tipo de banco não tem backup automático. Antes de migrar, copie as tabelas.
+O endereço sai pelo painel: app → componente do banco → Connection Details (clique em **show** antes de copiar, senão a senha vem mascarada). A conexão de fora só funciona com a caixa "Add app as a trusted source" desmarcada em Settings → Trusted Sources; marque de novo ao terminar.
 
 ## Custos
 

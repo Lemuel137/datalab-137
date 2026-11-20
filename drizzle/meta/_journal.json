@@ -57,6 +57,13 @@
       "when": 1795205123601,
       "tag": "0007_tired_tarantula",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1795205986092,
+      "tag": "0008_texto_avaliacao_delivery",
+      "breakpoints": true
     }
   ]
 }
