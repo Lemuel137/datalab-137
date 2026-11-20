@@ -46,3 +46,18 @@ describe("frontEditSchema", () => {
     expect(frontEditSchema.parse({ ...base, active: null }).active).toBe(false);
   });
 });
+
+describe("textos por tipo de achado", () => {
+  it("junta os campos template_<tipo> e ignora vazio e tipo desconhecido", () => {
+    const r = frontEditSchema.parse({
+      ...base,
+      template_cardapio_fraco: "Oi {gancho}",
+      template_avaliacao_sem_resposta: "   ",
+      template_inventado: "x",
+    });
+    expect(r.templatesByKind).toEqual({ cardapio_fraco: "Oi {gancho}" });
+  });
+  it("sem nenhum campo, mapa vazio", () => {
+    expect(frontEditSchema.parse(base).templatesByKind).toEqual({});
+  });
+});

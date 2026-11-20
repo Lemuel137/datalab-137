@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { saveFront } from "./actions";
+import { FINDING_KINDS, FINDING_KIND_LABEL } from "@/contracts/finding";
 import type { LeadActionState } from "@/contracts/journey";
 
 export type FrontRow = {
@@ -14,11 +15,12 @@ export type FrontRow = {
   findingPolicy: string;
   messageTemplate: string | null;
   followUpTemplate: string | null;
+  templatesByKind: Record<string, string>;
   active: boolean;
 };
 
 const WEEKLY = Array.from({ length: 21 }, (_, i) => i * 5);
-const field = "card px-2 py-1 text-sm";
+const field = "field text-sm";
 const label = "flex flex-col gap-1 label-caps";
 
 export function FrontForm({ front }: { front: FrontRow }) {
@@ -78,6 +80,30 @@ export function FrontForm({ front }: { front: FrontRow }) {
           className={`${field} normal-case tracking-normal text-ink`}
         />
       </label>
+      <details className="rounded-md border border-line px-4 py-3">
+        <summary className="text-sm font-medium">
+          Texto por tipo de achado{" "}
+          <span className="font-normal text-ink-muted">
+            ({Object.keys(front.templatesByKind).length} preenchido
+            {Object.keys(front.templatesByKind).length === 1 ? "" : "s"}; o tipo sem texto usa a
+            primeira mensagem acima)
+          </span>
+        </summary>
+        <div className="mt-3 flex flex-col gap-3">
+          {FINDING_KINDS.map((kind) => (
+            <label key={kind} className={label}>
+              {FINDING_KIND_LABEL[kind]}
+              <textarea
+                name={`template_${kind}`}
+                rows={front.templatesByKind[kind] ? 5 : 2}
+                defaultValue={front.templatesByKind[kind] ?? ""}
+                className={`${field} normal-case tracking-normal text-ink`}
+              />
+            </label>
+          ))}
+        </div>
+      </details>
+
       <label className={label}>
         Follow-up único
         <textarea

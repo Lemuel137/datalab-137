@@ -141,3 +141,13 @@ describe("achados da revisão da etapa 2", () => {
     expect(sourceKey(null)).toBeNull();
   });
 });
+
+describe("tipo de achado de avaliação", () => {
+  it("a porta aceita avaliacao_sem_resposta", () => {
+    const r = ingestSchema.parse({
+      front: "delivery",
+      leads: [{ ...lead, findings: [{ ...finding, kind: "avaliacao_sem_resposta" }] }],
+    });
+    expect(r.leads[0].findings[0].kind).toBe("avaliacao_sem_resposta");
+  });
+});

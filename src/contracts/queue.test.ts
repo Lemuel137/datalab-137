@@ -520,3 +520,99 @@ describe("links de conferência", () => {
     expect(checkLinks(null, {})).toEqual([]);
   });
 });
+
+describe("achado de avaliação sem resposta", () => {
+  const front: QFront = {
+    channel: "whatsapp",
+    dailyLimit: 20,
+    weeklyTarget: 25,
+    findingPolicy: "script",
+    messageTemplate: null,
+    followUpTemplate: null,
+    usesEngagement: false,
+    engagementMin: null,
+    templatesByKind: {
+      cardapio_fraco: "CARDAPIO: vi {gancho}; {achado}; {cliente}",
+      avaliacao_sem_resposta: "GOOGLE: vi {gancho}; {achado}; {cliente}",
+    },
+  };
+  const lead: QLead = {
+    id: "a",
+    name: "Pizzaria A",
+    stage: "importado",
+    whatsapp: "47992706419",
+    phone: null,
+    instagram: null,
+    followers: null,
+    engagementPct: null,
+    signals: {},
+    createdAt: QUI,
+  };
+  const f = (kind: string, hoursAgo: number, over: Partial<QFinding> = {}): QFinding => ({
+    leadId: "a",
+    kind,
+    summary: `achado ${kind}`,
+    origin: "script",
+    verifiedAt: new Date(QUI.getTime() - hoursAgo * 3600_000),
+    evidenceUrl: "https://x",
+    hook: "o anúncio X",
+    customerSide: "quem pesquisa vê",
+    hookBy: "ia",
+    ...over,
+  });
+  const run = (findings: QFinding[], fr: QFront = front) =>
+    selectQueue({
+      front: fr,
+      leads: [lead],
+      findings,
+      contacts: [],
+      channelContacts: [],
+      now: QUI,
+    });
+
+  it("avaliação vale 7 dias; cardápio continua valendo 24 horas", () => {
+    expect(validFinding("script", [f("avaliacao_sem_resposta", 72)], QUI)).not.toBeNull();
+    expect(validFinding("script", [f("avaliacao_sem_resposta", 8 * 24)], QUI)).toBeNull();
+    expect(validFinding("script", [f("cardapio_fraco", 72)], QUI)).toBeNull();
+  });
+
+  it("com os dois achados válidos, a avaliação abre a mensagem, com o texto dela", () => {
+    const q = run([f("cardapio_fraco", 2), f("avaliacao_sem_resposta", 48)]);
+    expect(q.novos[0].finding?.kind).toBe("avaliacao_sem_resposta");
+    expect(q.novos[0].message).toBe(
+      "GOOGLE: vi o anúncio X; achado avaliacao_sem_resposta; quem pesquisa vê",
+    );
+  });
+
+  it("tipo sem texto próprio nem texto padrão não vira mensagem: usa o outro achado", () => {
+    const soCardapio = { ...front, templatesByKind: { cardapio_fraco: "CARDAPIO: {achado}" } };
+    const q = run([f("cardapio_fraco", 2), f("avaliacao_sem_resposta", 48)], soCardapio);
+    expect(q.novos[0].finding?.kind).toBe("cardapio_fraco");
+    expect(q.excluded.semTexto).toBe(false);
+  });
+
+  it("achado vetado ou sem gancho não derruba o outro", () => {
+    const q = run([
+      f("avaliacao_sem_resposta", 48, { hook: null, customerSide: null, hookBy: "vetado" }),
+      f("cardapio_fraco", 2),
+    ]);
+    expect(q.novos[0].finding?.kind).toBe("cardapio_fraco");
+    const q2 = run([
+      f("avaliacao_sem_resposta", 48, { hook: null, customerSide: null, hookBy: null }),
+      f("cardapio_fraco", 30),
+    ]);
+    expect(q2.novos).toHaveLength(0);
+    expect(q2.excluded.semGancho.map((l) => l.id)).toEqual(["a"]);
+  });
+
+  it("frente sem nenhum texto continua avisando", () => {
+    const q = run([f("cardapio_fraco", 2)], { ...front, templatesByKind: {} });
+    expect(q.excluded.semTexto).toBe(true);
+  });
+
+  it("link de conferência da avaliação tem nome próprio", () => {
+    expect(
+      checkLinks({ kind: "avaliacao_sem_resposta", evidenceUrl: "https://maps.google.com/x" }, {}),
+    ).toEqual([{ label: "abrir avaliações", href: "https://maps.google.com/x" }]);
+  });
+});

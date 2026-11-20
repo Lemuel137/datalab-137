@@ -67,20 +67,51 @@ export type FindingPolicy = (typeof FINDING_POLICIES)[number];
  * `script`: medido nas últimas 24 h, por script ou à mão.
  * `conferido`: conferido no navegador hoje (tipo de achado que já errou por script).
  */
-export function validFinding<F extends { origin: string; verifiedAt: Date }>(
+/**
+ * Por quanto tempo uma medição de script vale, por tipo de achado.
+ * Cardápio muda de um dia para o outro; avaliação no Google fica semanas no ar,
+ * e relê-la custa crédito, então vale 7 dias.
+ */
+const SCRIPT_VALID_HOURS: Record<string, number> = { avaliacao_sem_resposta: 7 * 24 };
+const DEFAULT_SCRIPT_VALID_HOURS = 24;
+
+/** Quando há mais de um achado válido, qual abre a mensagem. Quem não está na lista vai depois. */
+const KIND_PRIORITY = ["avaliacao_sem_resposta", "destino_anuncio", "cardapio_fraco"];
+const kindRank = (kind: string | undefined) => {
+  const i = KIND_PRIORITY.indexOf(kind ?? "");
+  return i === -1 ? KIND_PRIORITY.length : i;
+};
+
+/**
+ * Os achados válidos, do mais forte ao mais fraco (prioridade do tipo, depois o mais recente).
+ * `script`: medido dentro da validade do tipo, por script ou à mão.
+ * `conferido`: conferido no navegador hoje (tipo de achado que já errou por script).
+ */
+export function validFindings<F extends { origin: string; verifiedAt: Date; kind?: string }>(
+  policy: FindingPolicy,
+  findings: F[],
+  now: Date,
+): F[] {
+  const ok = (f: F) =>
+    policy === "script"
+      ? now.getTime() - f.verifiedAt.getTime() <=
+        (SCRIPT_VALID_HOURS[f.kind ?? ""] ?? DEFAULT_SCRIPT_VALID_HOURS) * 3600_000
+      : f.origin === "conferido" && spDay(f.verifiedAt) === spDay(now);
+  return findings
+    .filter((f) => f.verifiedAt <= now && ok(f))
+    .sort(
+      (a, b) =>
+        kindRank(a.kind) - kindRank(b.kind) || b.verifiedAt.getTime() - a.verifiedAt.getTime(),
+    );
+}
+
+/** O achado válido mais forte, ou null. */
+export function validFinding<F extends { origin: string; verifiedAt: Date; kind?: string }>(
   policy: FindingPolicy,
   findings: F[],
   now: Date,
 ): F | null {
-  const ok = (f: F) =>
-    policy === "script"
-      ? now.getTime() - f.verifiedAt.getTime() <= DAY_MS
-      : f.origin === "conferido" && spDay(f.verifiedAt) === spDay(now);
-  return (
-    findings
-      .filter((f) => f.verifiedAt <= now && ok(f))
-      .sort((a, b) => b.verifiedAt.getTime() - a.verifiedAt.getTime())[0] ?? null
-  );
+  return validFindings(policy, findings, now)[0] ?? null;
 }
 
 export type MessageVars = {
@@ -173,6 +204,8 @@ export type QFront = {
   weeklyTarget: number;
   findingPolicy: FindingPolicy;
   messageTemplate: string | null;
+  /** Texto próprio por tipo de achado; quem não tem usa `messageTemplate`. */
+  templatesByKind?: Record<string, string>;
   followUpTemplate: string | null;
   usesEngagement: boolean;
   engagementMin: number | null;
@@ -275,15 +308,19 @@ export function selectQueue(i: {
     now,
   });
 
+  const byKind = front.templatesByKind ?? {};
+  const templateFor = (f: QFinding) => byKind[f.kind ?? ""] || front.messageTemplate;
+  const hasTemplate = Boolean(front.messageTemplate) || Object.values(byKind).some(Boolean);
+
   const excluded: Queue["excluded"] = {
-    semTexto: !front.messageTemplate,
+    semTexto: !hasTemplate,
     vencidos: [],
     semGancho: [],
     semContato: 0,
     semEngajamento: 0,
   };
   const eligible: QItem[] = [];
-  if (front.messageTemplate) {
+  if (hasTemplate) {
     for (const lead of i.leads) {
       if (!NEW_STAGES.includes(lead.stage)) continue;
       if ((contactsOf.get(lead.id) ?? []).length > 0) continue;
@@ -303,12 +340,18 @@ export function selectQueue(i: {
           continue;
         }
       }
-      const finding = validFinding(front.findingPolicy, findingsOf.get(lead.id) ?? [], now);
-      if (!finding) {
+      const valid = validFindings(front.findingPolicy, findingsOf.get(lead.id) ?? [], now);
+      if (valid.length === 0) {
         excluded.vencidos.push(lead);
         continue;
       }
-      const it = item(lead, front.messageTemplate, finding);
+      // O primeiro achado válido que tem texto para o tipo dele e todas as partes que o texto pede.
+      let it: QItem | null = null;
+      for (const finding of valid) {
+        const template = templateFor(finding);
+        it = template ? item(lead, template, finding) : null;
+        if (it) break;
+      }
       if (it) eligible.push(it);
       else excluded.semGancho.push(lead);
     }
@@ -333,6 +376,11 @@ export function selectQueue(i: {
 
 export type CheckLink = { label: string; href: string };
 
+const EVIDENCE_LABEL: Record<string, string> = {
+  cardapio_fraco: "abrir cardápio",
+  avaliacao_sem_resposta: "abrir avaliações",
+};
+
 const isHttp = (v: unknown): v is string => typeof v === "string" && /^https?:\/\//.test(v);
 
 /**
@@ -347,7 +395,7 @@ export function checkLinks(
   const links: CheckLink[] = [];
   if (finding && isHttp(finding.evidenceUrl)) {
     links.push({
-      label: finding.kind === "cardapio_fraco" ? "abrir cardápio" : "abrir evidência",
+      label: EVIDENCE_LABEL[finding.kind ?? ""] ?? "abrir evidência",
       href: finding.evidenceUrl,
     });
   }

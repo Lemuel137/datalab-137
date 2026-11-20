@@ -26,6 +26,8 @@ export const fronts = pgTable("fronts", {
   // Textos com {nome} e {achado}. Sem texto, a frente não entra na fila.
   messageTemplate: text("message_template"),
   followUpTemplate: text("follow_up_template"),
+  // Texto da primeira mensagem por tipo de achado; quem não tem usa message_template.
+  templatesByKind: jsonb("templates_by_kind").$type<Record<string, string>>().notNull().default({}),
   // Leads novos por semana, de 5 em 5; a fila divide pelos dias úteis.
   weeklyTarget: integer("weekly_target").notNull().default(25),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

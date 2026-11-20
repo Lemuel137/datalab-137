@@ -113,7 +113,6 @@ export async function markSent(
     );
     // Fora da fila (achado venceu ou limite estourou depois de abrir a conversa): o envio
     // já aconteceu à mão, então grava mesmo assim. Recusar criaria uma segunda "primeira mensagem".
-    const template = kind === "first" ? front.messageTemplate : front.followUpTemplate;
     let message = edited?.trim() || item?.message;
     if (!message) {
       const [f] = await tx
@@ -122,6 +121,10 @@ export async function markSent(
         .where(eq(findings.leadId, leadId))
         .orderBy(desc(findings.verifiedAt))
         .limit(1);
+      const template =
+        kind === "followup"
+          ? front.followUpTemplate
+          : front.templatesByKind[f?.kind ?? ""] || front.messageTemplate;
       message = template
         ? renderMessage(template, {
             nome: lead.name,
