@@ -39,3 +39,15 @@ export async function reconfirmFinding(findingId: string, now = new Date()) {
     ? { ok: true as const, message: "Achado reconferido hoje.", leadId: rows[0].leadId }
     : { ok: false as const, message: "Achado não encontrado ou medido por script." };
 }
+
+/** Registra que a evidência do achado foi conferida no navegador agora (libera o envio na fila). */
+export async function confirmFinding(findingId: string, now = new Date()) {
+  const rows = await db
+    .update(findings)
+    .set({ confirmedAt: now })
+    .where(eq(findings.id, findingId))
+    .returning({ leadId: findings.leadId });
+  return rows.length
+    ? { ok: true as const, message: "Conferido. Envio liberado para hoje." }
+    : { ok: false as const, message: "Achado não encontrado." };
+}

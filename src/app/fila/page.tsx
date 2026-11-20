@@ -37,6 +37,7 @@ function toRow(it: QItem): QueueRow {
     finding: it.finding?.summary ?? null,
     findingWhen: it.finding ? fmtWhen.format(it.finding.verifiedAt) : null,
     byAi: it.finding?.hookBy === "ia",
+    findingId: it.needsCheck && it.finding && "id" in it.finding ? String(it.finding.id) : null,
     links: checkLinks(it.finding, s),
     items: measured(it.finding?.kind, it.finding?.summary ?? "", s),
     message: it.message,

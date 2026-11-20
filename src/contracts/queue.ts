@@ -189,6 +189,8 @@ export type QFinding = {
   hook: string | null;
   customerSide: string | null;
   hookBy?: string | null;
+  /** Quando o Lemuel conferiu a evidência no navegador (tipos que exigem conferência). */
+  confirmedAt?: Date | null;
 };
 export type QContact = {
   id: string;
@@ -210,7 +212,28 @@ export type QFront = {
   usesEngagement: boolean;
   engagementMin: number | null;
 };
-export type QItem = { lead: QLead; finding: QFinding | null; message: string; link: string };
+export type QItem = {
+  lead: QLead;
+  finding: QFinding | null;
+  message: string;
+  link: string;
+  /** O achado é de um tipo que exige conferência e ainda não foi conferido hoje. */
+  needsCheck: boolean;
+};
+
+/**
+ * Tipos de achado que o Lemuel confere no navegador antes de cada envio, mesmo
+ * medidos por script: a reclamação pode ter sido respondida depois da medição.
+ */
+const CHECK_KINDS = ["avaliacao_sem_resposta"];
+
+export function needsCheck(
+  finding: { kind?: string; confirmedAt?: Date | null } | null,
+  now: Date,
+): boolean {
+  if (!finding || !CHECK_KINDS.includes(finding.kind ?? "")) return false;
+  return !finding.confirmedAt || spDay(finding.confirmedAt) !== spDay(now);
+}
 export type Queue = {
   quota: number;
   /** Primeiros contatos da frente desde segunda: o progresso da meta semanal. */
@@ -275,7 +298,7 @@ export function selectQueue(i: {
     if (missingVars(template, vars(lead, finding)).length > 0) return null;
     const message = renderMessage(template, vars(lead, finding));
     const link = contactLink(front.channel, lead, message);
-    return link ? { lead, finding, message, link } : null;
+    return link ? { lead, finding, message, link, needsCheck: needsCheck(finding, now) } : null;
   };
   const latest = (leadId: string) =>
     [...(findingsOf.get(leadId) ?? [])].sort(

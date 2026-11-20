@@ -78,6 +78,8 @@ export const findings = pgTable(
     customerSide: text("customer_side"),
     // Quem escreveu gancho e lado do cliente: "ia" (rotina das 6h) ou "manual".
     hookBy: text("hook_by"),
+    // Conferência no navegador, exigida a cada envio para os tipos em CHECK_KINDS.
+    confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("findings_lead_idx").on(t.leadId)],

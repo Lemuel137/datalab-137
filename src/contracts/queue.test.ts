@@ -616,3 +616,60 @@ describe("achado de avaliação sem resposta", () => {
     ).toEqual([{ label: "abrir avaliações", href: "https://maps.google.com/x" }]);
   });
 });
+
+describe("conferência obrigatória da avaliação", () => {
+  const front: QFront = {
+    channel: "whatsapp",
+    dailyLimit: 20,
+    weeklyTarget: 25,
+    findingPolicy: "script",
+    messageTemplate: "{gancho}; {achado}; {cliente}",
+    followUpTemplate: null,
+    usesEngagement: false,
+    engagementMin: null,
+  };
+  const lead: QLead = {
+    id: "a",
+    name: "A",
+    stage: "importado",
+    whatsapp: "47992706419",
+    phone: null,
+    instagram: null,
+    followers: null,
+    engagementPct: null,
+    signals: {},
+    createdAt: QUI,
+  };
+  const f = (kind: string, confirmedAt: Date | null): QFinding => ({
+    leadId: "a",
+    kind,
+    summary: "achado",
+    origin: "script",
+    verifiedAt: new Date(QUI.getTime() - 3600_000),
+    evidenceUrl: "https://x",
+    hook: "g",
+    customerSide: "c",
+    hookBy: "ia",
+    confirmedAt,
+  });
+  const check = (finding: QFinding) =>
+    selectQueue({
+      front,
+      leads: [lead],
+      findings: [finding],
+      contacts: [],
+      channelContacts: [],
+      now: QUI,
+    }).novos[0].needsCheck;
+
+  it("avaliação sem conferência de hoje entra na fila, mas travada", () => {
+    expect(check(f("avaliacao_sem_resposta", null))).toBe(true);
+    expect(check(f("avaliacao_sem_resposta", new Date("2026-11-18T15:00:00-03:00")))).toBe(true);
+  });
+  it("conferida hoje (dia de Brasília) libera", () => {
+    expect(check(f("avaliacao_sem_resposta", new Date("2026-11-19T07:30:00-03:00")))).toBe(false);
+  });
+  it("achado de cardápio não pede conferência", () => {
+    expect(check(f("cardapio_fraco", null))).toBe(false);
+  });
+});

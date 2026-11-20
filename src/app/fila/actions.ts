@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { confirmFinding } from "@/domains/leads/findings";
 import { markSent, skipToday } from "@/domains/outreach/queue";
 import type { LeadActionState } from "@/contracts/journey";
 
@@ -40,5 +41,16 @@ export async function pular(_prev: LeadActionState, formData: FormData): Promise
   if (!parsed.success) return { ok: false, message: "Pedido inválido." };
   const result = await skipToday(parsed.data);
   if (result.ok) refresh(parsed.data);
+  return result;
+}
+
+export async function conferi(
+  _prev: LeadActionState,
+  formData: FormData,
+): Promise<LeadActionState> {
+  const parsed = z.uuid().safeParse(formData.get("findingId"));
+  if (!parsed.success) return { ok: false, message: "Pedido inválido." };
+  const result = await confirmFinding(parsed.data);
+  if (result.ok) revalidatePath("/fila");
   return result;
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, useState } from "react";
-import { enviei, pular } from "./actions";
+import { conferi, enviei, pular } from "./actions";
 import type { LeadActionState } from "@/contracts/journey";
 
 export type QueueRow = {
@@ -14,6 +14,8 @@ export type QueueRow = {
   findingWhen: string | null;
   /** Gancho e lado do cliente escritos pela rotina de IA: vale ler antes de enviar. */
   byAi: boolean;
+  /** Preenchido quando o achado exige conferência e ainda não foi conferido hoje. */
+  findingId: string | null;
   /** Onde conferir o achado: cardápio, anúncios, página. */
   links: { label: string; href: string }[];
   /** Itens que a medição apontou (até 12 nomes) e o total. */
@@ -44,12 +46,18 @@ export function QueueItem({
     pular,
     undefined,
   );
+  const [checked, checkAction, checking] = useActionState<LeadActionState, FormData>(
+    conferi,
+    undefined,
+  );
   const [copied, setCopied] = useState(false);
   // O texto montado é ponto de partida: dá para ajustar antes de abrir a conversa.
   const [text, setText] = useState(row.message);
   const base = row.link.split("?text=")[0];
   const link = row.link.includes("?text=") ? `${base}?text=${encodeURIComponent(text)}` : row.link;
-  const state = sent ?? skipped;
+  const state = sent ?? skipped ?? checked;
+  // Achado que exige conferência trava a conversa e o registro até o Lemuel conferir.
+  const blocked = locked || row.findingId !== null;
 
   return (
     <li>
@@ -121,9 +129,28 @@ export function QueueItem({
             </p>
           )}
 
+          {row.findingId && (
+            <form
+              action={checkAction}
+              className="flex flex-wrap items-center gap-3 rounded-md bg-brand-soft p-3"
+            >
+              <input type="hidden" name="findingId" value={row.findingId} />
+              <p className="min-w-0 flex-1 text-sm">
+                Abra as avaliações e confirme que as reclamações continuam sem resposta. O envio só
+                libera depois disso.
+              </p>
+              <button type="submit" disabled={checking} className="btn btn-brand">
+                conferi as avaliações
+              </button>
+            </form>
+          )}
+
           <div className="flex flex-wrap items-center gap-2">
-            {locked ? (
-              <span className={`btn ${next ? "btn-brand" : ""}`} aria-disabled="true">
+            {blocked ? (
+              <span
+                className={`btn ${next && !row.findingId ? "btn-brand" : ""}`}
+                aria-disabled="true"
+              >
                 abrir conversa
               </span>
             ) : (
@@ -147,7 +174,7 @@ export function QueueItem({
               <input type="hidden" name="leadId" value={row.leadId} />
               <input type="hidden" name="kind" value={kind} />
               <input type="hidden" name="message" value={text} />
-              <button type="submit" disabled={locked || sending} className="btn">
+              <button type="submit" disabled={blocked || sending} className="btn">
                 enviei
               </button>
             </form>
