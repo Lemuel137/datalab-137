@@ -1,4 +1,4 @@
-import { BRIEFING_QUESTIONS, progress } from "@/contracts/briefing";
+import { BRIEFING_QUESTIONS, answerLines, progress } from "@/contracts/briefing";
 import { listBriefings } from "@/domains/briefings/briefings";
 import { reabrir } from "./actions";
 import { CopyLink, CreateForm } from "./create-form";
@@ -83,14 +83,17 @@ export default async function BriefingsPage() {
                       )}
                     </div>
                     <dl className="flex flex-col gap-4 border-t border-line pt-4">
-                      {BRIEFING_QUESTIONS.map((q) => (
-                        <div key={q.id}>
-                          <dt className="text-sm font-medium">{q.title}</dt>
-                          <dd className="mt-1 whitespace-pre-wrap text-sm text-ink-muted">
-                            {b.answers[q.id] || "Sem resposta."}
-                          </dd>
-                        </div>
-                      ))}
+                      {BRIEFING_QUESTIONS.map((q) => {
+                        const lines = answerLines(q, b.answers);
+                        return (
+                          <div key={q.id}>
+                            <dt className="text-sm font-medium">{q.title}</dt>
+                            <dd className="mt-1 whitespace-pre-wrap text-sm text-ink-muted">
+                              {lines.length ? lines.join("\n") : "Sem resposta."}
+                            </dd>
+                          </div>
+                        );
+                      })}
                     </dl>
                   </div>
                 </details>
