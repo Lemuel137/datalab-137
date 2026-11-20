@@ -293,6 +293,7 @@ describe("selectQueue", () => {
       channelContacts: [{ sentAt: new Date("2026-11-16T10:00:00-03:00") }],
     });
     expect(q.quota).toBe(12); // (25 − 1) ÷ 2
+    expect(q.sentNewThisWeek).toBe(1);
   });
 
   it("frente sem texto não tem novos nem follow-ups", () => {

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { asc, desc, eq } from "drizzle-orm";
 import { db } from "@/db/client";
@@ -54,58 +53,53 @@ export default async function LeadPage({ params }: Props) {
     : null;
 
   return (
-    <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-10">
+    <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-8 sm:px-8">
       <header className="flex items-baseline justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-widest text-zinc-500">
+          <p className="label-caps">
             {front?.name ?? "frente"} · {lead.source}
           </p>
-          <h1 className="text-2xl font-semibold">{lead.name}</h1>
+          <h1 className="text-[32px] font-semibold leading-9 tracking-tight">{lead.name}</h1>
         </div>
-        <Link href="/leads" className="text-sm underline">
-          voltar
-        </Link>
       </header>
 
       <section className="grid gap-4 sm:grid-cols-2">
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
-          <dt className="text-zinc-500">etapa</dt>
+          <dt className="text-ink-muted">etapa</dt>
           <dd>{STAGE_LABEL[lead.stage as Stage] ?? lead.stage}</dd>
-          <dt className="text-zinc-500">categoria</dt>
+          <dt className="text-ink-muted">categoria</dt>
           <dd>{lead.category ?? "—"}</dd>
-          <dt className="text-zinc-500">nota</dt>
+          <dt className="text-ink-muted">nota</dt>
           <dd>
             {lead.rating ?? "—"}
             {lead.reviewCount ? ` (${lead.reviewCount} avaliações)` : ""}
           </dd>
-          <dt className="text-zinc-500">instagram</dt>
+          <dt className="text-ink-muted">instagram</dt>
           <dd>{lead.instagram ? `@${lead.instagram}` : "—"}</dd>
-          <dt className="text-zinc-500">seguidores</dt>
+          <dt className="text-ink-muted">seguidores</dt>
           <dd>{lead.followers?.toLocaleString("pt-BR") ?? "—"}</dd>
-          <dt className="text-zinc-500">engajamento</dt>
+          <dt className="text-ink-muted">engajamento</dt>
           <dd>
             {lead.engagementPct != null ? `${lead.engagementPct}%` : "—"}
             {engajamento && !engajamento.ok ? ` · ${engajamento.message}` : ""}
             {engajamento?.ok ? ` · acima do piso de ${engajamento.floor}%` : ""}
             {front && !front.usesEngagement ? " · esta frente não usa engajamento" : ""}
           </dd>
-          <dt className="text-zinc-500">site</dt>
+          <dt className="text-ink-muted">site</dt>
           <dd className="truncate">{lead.site ?? "—"}</dd>
-          <dt className="text-zinc-500">telefone</dt>
+          <dt className="text-ink-muted">telefone</dt>
           <dd>{lead.phone ?? "—"}</dd>
         </dl>
 
-        <div className="border border-zinc-300 p-3">
-          <h2 className="mb-2 text-xs uppercase tracking-wide text-zinc-500">
-            Sinais da importação
-          </h2>
+        <div className="card p-5">
+          <h2 className="mb-2 label-caps">Sinais da importação</h2>
           {signals.length === 0 ? (
-            <p className="text-sm text-zinc-500">—</p>
+            <p className="text-sm text-ink-muted">—</p>
           ) : (
             <ul className="flex flex-col gap-1 text-sm">
               {signals.map(([k, v]) => (
                 <li key={k} className="flex justify-between gap-3">
-                  <span className="text-zinc-500">{k}</span>
+                  <span className="text-ink-muted">{k}</span>
                   <span className="truncate text-right">
                     {Array.isArray(v) ? v.join(", ") : String(v)}
                   </span>
@@ -116,13 +110,13 @@ export default async function LeadPage({ params }: Props) {
         </div>
       </section>
 
-      <section className="border border-zinc-300 p-4">
-        <h2 className="mb-3 text-lg font-medium">Estado</h2>
+      <section className="card p-6">
+        <h2 className="mb-3 text-xl font-semibold tracking-tight">Estado</h2>
         <p className="mb-3 text-sm">
           Etapa atual: <b>{STAGE_LABEL[lead.stage as Stage] ?? lead.stage}</b>
         </p>
         <StageButtons leadId={lead.id} current={lead.stage as Stage} />
-        <div className="mt-4 border-t border-zinc-200 pt-4">
+        <div className="mt-4 border-t border-line pt-4">
           <MetricsForm
             leadId={lead.id}
             followers={lead.followers}
@@ -132,24 +126,24 @@ export default async function LeadPage({ params }: Props) {
       </section>
 
       <section>
-        <h2 className="mb-1 text-lg font-medium">Contatos</h2>
-        <p className="mb-3 text-sm text-zinc-500">
+        <h2 className="mb-1 text-xl font-semibold tracking-tight">Contatos</h2>
+        <p className="mb-3 text-sm text-ink-muted">
           Um envio e um follow-up único. Depois disso, não insistir.
         </p>
 
         {historico.length === 0 ? (
-          <p className="mb-4 text-sm text-zinc-500">Nenhum envio registrado.</p>
+          <p className="mb-4 text-sm text-ink-muted">Nenhum envio registrado.</p>
         ) : (
           <ul className="mb-4 flex flex-col gap-2">
             {historico.map((c) => (
-              <li key={c.id} className="border border-zinc-200 p-3 text-sm">
-                <p className="text-xs uppercase tracking-wide text-zinc-500">
+              <li key={c.id} className="card p-3 text-sm">
+                <p className="label-caps">
                   {c.channel} · {c.isFollowUp ? "follow-up" : "primeira mensagem"} ·{" "}
                   {c.sentAt.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}
                 </p>
                 <p className="mt-1 whitespace-pre-wrap">{c.message}</p>
                 {c.repliedAt ? (
-                  <p className="mt-1 text-xs text-emerald-700">
+                  <p className="mt-1 text-xs text-success">
                     resposta: {c.replyKind} em{" "}
                     {c.repliedAt.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}
                   </p>
@@ -172,36 +166,36 @@ export default async function LeadPage({ params }: Props) {
       </section>
 
       <section>
-        <h2 className="mb-1 text-lg font-medium">Achados verificados</h2>
-        <p className="mb-3 text-sm text-zinc-500">
+        <h2 className="mb-1 text-xl font-semibold tracking-tight">Achados verificados</h2>
+        <p className="mb-3 text-sm text-ink-muted">
           Toda afirmação sobre este lead precisa de um achado com URL e data.
         </p>
 
         {bloqueado && (
-          <p className="mb-3 border-l-2 border-red-600 pl-3 text-sm text-red-700">
+          <p className="mb-3 border-l-2 border-danger pl-3 text-sm text-danger">
             A etapa atual exige ao menos um achado verificado.
           </p>
         )}
 
         {list.length === 0 ? (
-          <p className="text-sm text-zinc-500">Nenhum achado.</p>
+          <p className="text-sm text-ink-muted">Nenhum achado.</p>
         ) : (
           <ul className="flex flex-col gap-2">
             {list.map((f) => (
-              <li key={f.id} className="border border-zinc-200 p-3 text-sm">
+              <li key={f.id} className="card p-3 text-sm">
                 <p>{f.summary}</p>
                 {(f.hook || f.customerSide) && (
-                  <p className="mt-1 text-xs text-zinc-600">
+                  <p className="mt-1 text-xs text-ink-muted">
                     gancho: {f.hook ?? "—"} · lado do cliente: {f.customerSide ?? "—"}
                     {f.hookBy === "ia" && " · escrito por IA"}
                   </p>
                 )}
                 {f.hookBy === "vetado" && (
-                  <p className="mt-1 text-xs text-amber-700">
+                  <p className="mt-1 text-xs text-warning">
                     A IA leu este achado e não escreveu abertura: ele não sustenta uma mensagem.
                   </p>
                 )}
-                <p className="mt-1 text-xs text-zinc-500">
+                <p className="mt-1 text-xs text-ink-muted">
                   {FINDING_KIND_LABEL[f.kind as FindingKind] ?? f.kind} ·{" "}
                   {f.origin === "script" ? "medido por script" : "conferido no navegador"} ·
                   confiança {f.confidence} · verificado em{" "}
@@ -217,8 +211,8 @@ export default async function LeadPage({ params }: Props) {
         )}
       </section>
 
-      <section className="border border-zinc-300 p-4">
-        <h2 className="mb-3 text-lg font-medium">Registrar achado</h2>
+      <section className="card p-6">
+        <h2 className="mb-3 text-xl font-semibold tracking-tight">Registrar achado</h2>
         <FindingForm leadId={lead.id} />
       </section>
     </main>

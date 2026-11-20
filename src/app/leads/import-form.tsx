@@ -13,7 +13,7 @@ export function ImportForm({ fronts }: { fronts: { slug: string; name: string }[
     <form action={action} className="flex flex-col gap-3">
       <label className="flex flex-col gap-1 text-sm">
         Frente
-        <select name="front" className="border border-zinc-300 p-2" defaultValue={fronts[0]?.slug}>
+        <select name="front" className="field" defaultValue={fronts[0]?.slug}>
           {fronts.map((f) => (
             <option key={f.slug} value={f.slug}>
               {f.name}
@@ -24,7 +24,7 @@ export function ImportForm({ fronts }: { fronts: { slug: string; name: string }[
 
       <label className="flex flex-col gap-1 text-sm">
         Formato
-        <select name="formato" className="border border-zinc-300 p-2" defaultValue="csv">
+        <select name="formato" className="field" defaultValue="csv">
           <option value="csv">CSV do qualificador</option>
           <option value="dossie">JSON de dossiê</option>
         </select>
@@ -36,7 +36,7 @@ export function ImportForm({ fronts }: { fronts: { slug: string; name: string }[
           name="conteudo"
           rows={10}
           spellCheck={false}
-          className="border border-zinc-300 p-2 font-mono text-xs"
+          className="field font-mono text-xs"
           placeholder="cole aqui o CSV ou o JSON"
         />
       </label>
@@ -44,15 +44,13 @@ export function ImportForm({ fronts }: { fronts: { slug: string; name: string }[
       <button
         type="submit"
         disabled={pending}
-        className="bg-zinc-900 px-4 py-2 text-sm text-white disabled:opacity-50"
+        className="bg-ink px-4 py-2 text-sm text-ground disabled:opacity-50"
       >
         {pending ? "importando..." : "importar"}
       </button>
 
       {state && (
-        <p className={`text-sm ${state.ok ? "text-emerald-700" : "text-red-700"}`}>
-          {state.message}
-        </p>
+        <p className={`text-sm ${state.ok ? "text-success" : "text-danger"}`}>{state.message}</p>
       )}
     </form>
   );

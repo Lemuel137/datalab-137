@@ -15,52 +15,54 @@ export default async function LeadsPage() {
   const rows = await db.select().from(leads).orderBy(desc(leads.createdAt)).limit(50);
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-10">
+    <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-8 sm:px-8">
       <header className="flex items-baseline justify-between gap-4">
-        <h1 className="text-2xl font-semibold">Leads</h1>
-        <Link href="/" className="text-sm underline">
-          voltar
-        </Link>
+        <h1 className="text-[32px] font-semibold leading-9 tracking-tight">Leads</h1>
       </header>
 
-      <section className="border border-zinc-300 p-4">
-        <h2 className="mb-3 text-lg font-medium">Importar</h2>
-        <ImportForm fronts={frontList.map((f) => ({ slug: f.slug, name: f.name }))} />
-      </section>
-
       <section>
-        <h2 className="mb-3 text-lg font-medium">Últimos {rows.length}</h2>
+        <h2 className="mb-3 text-xl font-semibold tracking-tight">Últimos {rows.length}</h2>
         {rows.length === 0 ? (
-          <p className="text-sm text-zinc-500">Nenhum lead importado.</p>
+          <p className="text-sm text-ink-muted">Nenhum lead importado.</p>
         ) : (
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-zinc-300 text-left">
-                <th className="py-2">nome</th>
-                <th className="py-2">instagram</th>
-                <th className="py-2">site</th>
-                <th className="py-2">etapa</th>
-                <th className="py-2"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((l) => (
-                <tr key={l.id} className="border-b border-zinc-200">
-                  <td className="py-2">{l.name}</td>
-                  <td className="py-2 text-zinc-600">{l.instagram ?? "—"}</td>
-                  <td className="py-2 text-zinc-600">{l.site ?? "—"}</td>
-                  <td className="py-2">{STAGE_LABEL[l.stage as Stage] ?? l.stage}</td>
-                  <td className="py-2 text-right">
-                    <Link href={`/leads/${l.id}`} className="underline">
-                      abrir
-                    </Link>
-                  </td>
+          <div className="card overflow-x-auto px-5 py-2">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="label-caps border-b border-line text-left">
+                  <th className="py-2">nome</th>
+                  <th className="py-2">instagram</th>
+                  <th className="py-2">site</th>
+                  <th className="py-2">etapa</th>
+                  <th className="py-2"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {rows.map((l) => (
+                  <tr key={l.id} className="border-b border-line">
+                    <td className="py-2">{l.name}</td>
+                    <td className="py-2 text-ink-muted">{l.instagram ?? "—"}</td>
+                    <td className="py-2 text-ink-muted">{l.site ?? "—"}</td>
+                    <td className="py-2">
+                      <span className="chip">{STAGE_LABEL[l.stage as Stage] ?? l.stage}</span>
+                    </td>
+                    <td className="py-2 text-right">
+                      <Link href={`/leads/${l.id}`} className="underline">
+                        abrir
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
+      <details className="card">
+        <summary className="p-5 font-semibold">Importar leads por arquivo</summary>
+        <div className="px-5 pb-5">
+          <ImportForm fronts={frontList.map((f) => ({ slug: f.slug, name: f.name }))} />
+        </div>
+      </details>
     </main>
   );
 }

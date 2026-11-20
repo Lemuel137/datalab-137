@@ -21,7 +21,7 @@ export function MetricsForm({ leadId, followers, engagementPct }: Props) {
           name="followers"
           inputMode="numeric"
           defaultValue={followers ?? ""}
-          className="w-32 border border-zinc-300 p-2 text-sm"
+          className="w-32 field text-sm"
         />
       </label>
       <label className="flex flex-col gap-1 text-sm">
@@ -30,21 +30,15 @@ export function MetricsForm({ leadId, followers, engagementPct }: Props) {
           name="engagementPct"
           inputMode="decimal"
           defaultValue={engagementPct ?? ""}
-          className="w-32 border border-zinc-300 p-2 text-sm"
+          className="w-32 field text-sm"
           placeholder="0,15"
         />
       </label>
-      <button
-        type="submit"
-        disabled={pending}
-        className="border border-zinc-900 px-4 py-2 text-sm disabled:opacity-50"
-      >
+      <button type="submit" disabled={pending} className="btn disabled:opacity-50">
         {pending ? "salvando..." : "salvar medição"}
       </button>
       {state && (
-        <p className={`text-sm ${state.ok ? "text-emerald-700" : "text-red-700"}`}>
-          {state.message}
-        </p>
+        <p className={`text-sm ${state.ok ? "text-success" : "text-danger"}`}>{state.message}</p>
       )}
     </form>
   );

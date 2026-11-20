@@ -179,6 +179,8 @@ export type QFront = {
 export type QItem = { lead: QLead; finding: QFinding | null; message: string; link: string };
 export type Queue = {
   quota: number;
+  /** Primeiros contatos da frente desde segunda: o progresso da meta semanal. */
+  sentNewThisWeek: number;
   sentToday: number;
   waitMs: number;
   novos: QItem[];
@@ -318,6 +320,7 @@ export function selectQueue(i: {
 
   return {
     quota,
+    sentNewThisWeek,
     sentToday,
     waitMs: gapWaitMs(front.channel, lastSent, now),
     novos: eligible.slice(0, quota),

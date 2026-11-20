@@ -18,18 +18,18 @@ export type FrontRow = {
 };
 
 const WEEKLY = Array.from({ length: 21 }, (_, i) => i * 5);
-const field = "border border-zinc-300 px-2 py-1 text-sm";
-const label = "flex flex-col gap-1 text-xs uppercase tracking-wide text-zinc-500";
+const field = "card px-2 py-1 text-sm";
+const label = "flex flex-col gap-1 label-caps";
 
 export function FrontForm({ front }: { front: FrontRow }) {
   const [state, action, pending] = useActionState<LeadActionState, FormData>(saveFront, undefined);
 
   return (
-    <form action={action} className="flex flex-col gap-3 border border-zinc-300 p-4">
+    <form action={action} className="card flex flex-col gap-4 p-6">
       <input type="hidden" name="id" value={front.id} />
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-lg font-medium">{front.name}</h2>
-        <span className="text-sm text-zinc-500">
+        <h2 className="text-xl font-semibold tracking-tight">{front.name}</h2>
+        <span className="text-sm text-ink-muted">
           {front.slug} · {front.channel}
         </span>
       </div>
@@ -75,7 +75,7 @@ export function FrontForm({ front }: { front: FrontRow }) {
           name="messageTemplate"
           rows={4}
           defaultValue={front.messageTemplate ?? ""}
-          className={`${field} normal-case tracking-normal text-zinc-900`}
+          className={`${field} normal-case tracking-normal text-ink`}
         />
       </label>
       <label className={label}>
@@ -84,22 +84,16 @@ export function FrontForm({ front }: { front: FrontRow }) {
           name="followUpTemplate"
           rows={2}
           defaultValue={front.followUpTemplate ?? ""}
-          className={`${field} normal-case tracking-normal text-zinc-900`}
+          className={`${field} normal-case tracking-normal text-ink`}
         />
       </label>
 
       <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={pending}
-          className="border border-zinc-900 bg-zinc-900 px-3 py-1 text-sm text-white disabled:opacity-50"
-        >
+        <button type="submit" disabled={pending} className="btn btn-solid disabled:opacity-50">
           salvar
         </button>
         {state && (
-          <p className={`text-sm ${state.ok ? "text-emerald-700" : "text-red-700"}`}>
-            {state.message}
-          </p>
+          <p className={`text-sm ${state.ok ? "text-success" : "text-danger"}`}>{state.message}</p>
         )}
       </div>
     </form>

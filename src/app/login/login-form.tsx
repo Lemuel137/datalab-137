@@ -11,16 +11,12 @@ export function LoginForm({ de }: { de: string }) {
       <input type="hidden" name="de" value={de} />
       <label className="flex flex-col gap-1 text-sm">
         Senha
-        <input name="senha" type="password" required className="border border-zinc-300 p-2" />
+        <input name="senha" type="password" required autoFocus className="field" />
       </label>
-      <button
-        type="submit"
-        disabled={pending}
-        className="bg-zinc-900 px-4 py-2 text-sm text-white disabled:opacity-50"
-      >
+      <button type="submit" disabled={pending} className="btn btn-brand py-2">
         {pending ? "entrando..." : "entrar"}
       </button>
-      {state && !state.ok && <p className="text-sm text-red-700">{state.message}</p>}
+      {state && !state.ok && <p className="text-sm text-danger">{state.message}</p>}
     </form>
   );
 }

@@ -7,9 +7,7 @@ import type { LeadActionState } from "@/contracts/journey";
 
 function Msg({ state }: { state: LeadActionState }) {
   if (!state) return null;
-  return (
-    <p className={`text-sm ${state.ok ? "text-emerald-700" : "text-red-700"}`}>{state.message}</p>
-  );
+  return <p className={`text-sm ${state.ok ? "text-success" : "text-danger"}`}>{state.message}</p>;
 }
 
 export function StageButtons({ leadId, current }: { leadId: string; current: Stage }) {
@@ -29,8 +27,8 @@ export function StageButtons({ leadId, current }: { leadId: string; current: Sta
               disabled={pending}
               className={`border px-3 py-1 text-sm disabled:opacity-50 ${
                 s === "descartado"
-                  ? "border-red-700 text-red-700"
-                  : "border-zinc-900 bg-zinc-900 text-white"
+                  ? "border-danger text-danger"
+                  : "border-line-strong bg-ink text-ground"
               }`}
             >
               {s === "descartado" ? "descartar" : `avançar para ${STAGE_LABEL[s].toLowerCase()}`}
@@ -57,7 +55,7 @@ export function ContactForm({
   const [state, action, pending] = useActionState<LeadActionState, FormData>(addContact, undefined);
 
   if (temEnvio && temFollowUp) {
-    return <p className="text-sm text-zinc-500">Follow-up único já enviado. Não insistir.</p>;
+    return <p className="text-sm text-ink-muted">Follow-up único já enviado. Não insistir.</p>;
   }
 
   if (temEnvio) {
@@ -68,11 +66,7 @@ export function ContactForm({
           <input type="hidden" name="channel" value={canal} />
           <input type="hidden" name="message" value="follow-up" />
           <input type="hidden" name="isFollowUp" value="on" />
-          <button
-            type="submit"
-            disabled={pending}
-            className="bg-zinc-900 px-4 py-2 text-sm text-white"
-          >
+          <button type="submit" disabled={pending} className="bg-ink px-4 py-2 text-sm text-ground">
             registrar follow-up único
           </button>
         </form>
@@ -86,7 +80,7 @@ export function ContactForm({
       <input type="hidden" name="leadId" value={leadId} />
       <label className="flex flex-col gap-1 text-sm">
         Canal
-        <select name="channel" defaultValue={canal} className="border border-zinc-300 p-2">
+        <select name="channel" defaultValue={canal} className="field">
           {CHANNELS.map((c) => (
             <option key={c} value={c}>
               {c}
@@ -96,12 +90,12 @@ export function ContactForm({
       </label>
       <label className="flex flex-col gap-1 text-sm">
         Texto enviado
-        <textarea name="message" rows={4} required className="border border-zinc-300 p-2 text-sm" />
+        <textarea name="message" rows={4} required className="field text-sm" />
       </label>
       <button
         type="submit"
         disabled={pending}
-        className="self-start bg-zinc-900 px-4 py-2 text-sm text-white disabled:opacity-50"
+        className="self-start bg-ink px-4 py-2 text-sm text-ground disabled:opacity-50"
       >
         {pending ? "salvando..." : "registrar envio"}
       </button>
@@ -118,21 +112,13 @@ export function ReplyForm({ leadId, contactId }: { leadId: string; contactId: st
       <form action={action} className="flex items-center gap-2">
         <input type="hidden" name="leadId" value={leadId} />
         <input type="hidden" name="contactId" value={contactId} />
-        <select
-          name="replyKind"
-          defaultValue="pessoa"
-          className="border border-zinc-300 p-1 text-xs"
-        >
+        <select name="replyKind" defaultValue="pessoa" className="field text-xs">
           <option value="pessoa">pessoa</option>
           <option value="whatsapp">pediu whatsapp</option>
           <option value="robo">robô</option>
           <option value="recusa">recusa</option>
         </select>
-        <button
-          type="submit"
-          disabled={pending}
-          className="border border-zinc-900 px-2 py-1 text-xs"
-        >
+        <button type="submit" disabled={pending} className="btn text-xs">
           registrar resposta
         </button>
       </form>

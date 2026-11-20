@@ -9,6 +9,7 @@ export type QueueRow = {
   leadId: string;
   name: string;
   place: string | null;
+  score: number | null;
   finding: string | null;
   findingWhen: string | null;
   /** Gancho e lado do cliente escritos pela rotina de IA: vale ler antes de enviar. */
@@ -21,14 +22,19 @@ export type QueueRow = {
 export function QueueItem({
   row,
   kind,
+  channel,
   copyOnOpen,
   locked,
+  next,
 }: {
   row: QueueRow;
   kind: "first" | "followup";
+  channel: string;
   /** Instagram não aceita texto no link: a mensagem vai para a área de transferência. */
   copyOnOpen: boolean;
   locked: boolean;
+  /** O lead da vez: abre expandido e é o único com a ação principal em destaque. */
+  next: boolean;
 }) {
   const [sent, sendAction, sending] = useActionState<LeadActionState, FormData>(enviei, undefined);
   const [skipped, skipAction, skipping] = useActionState<LeadActionState, FormData>(
@@ -41,96 +47,112 @@ export function QueueItem({
   const base = row.link.split("?text=")[0];
   const link = row.link.includes("?text=") ? `${base}?text=${encodeURIComponent(text)}` : row.link;
   const state = sent ?? skipped;
-  const btn = "border px-3 py-1 text-sm disabled:opacity-50";
 
   return (
-    <li className="flex flex-col gap-2 border border-zinc-300 p-3">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <Link href={`/leads/${row.leadId}`} className="font-medium underline">
-          {row.name}
-        </Link>
-        {row.place && <span className="text-sm text-zinc-500">{row.place}</span>}
-      </div>
-
-      {row.finding && (
-        <p className="text-sm">
-          {row.finding}
-          {row.findingWhen && (
-            <span className="text-zinc-500"> · verificado {row.findingWhen}</span>
-          )}
-          {row.evidenceUrl && (
-            <>
-              {" · "}
-              <a href={row.evidenceUrl} target="_blank" rel="noreferrer" className="underline">
-                ver evidência
-              </a>
-            </>
-          )}
-        </p>
-      )}
-
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        rows={Math.min(10, text.split("\n").length + 2)}
-        aria-label={`Mensagem para ${row.name}`}
-        className="border border-zinc-300 p-2 text-sm"
-      />
-
-      {row.byAi && (
-        <p className="text-xs text-amber-700">
-          Abertura escrita por IA a partir do anúncio. Leia e ajuste antes de enviar.
-        </p>
-      )}
-
-      <div className="flex flex-wrap items-center gap-2">
-        {locked ? (
-          <span className={`${btn} border-zinc-300 text-zinc-400`}>abrir conversa</span>
-        ) : (
-          <a
-            href={link}
-            target="_blank"
-            rel="noreferrer"
-            className={`${btn} border-zinc-900 bg-zinc-900 text-white`}
-            onClick={() => {
-              if (!copyOnOpen) return;
-              navigator.clipboard.writeText(text).then(
-                () => setCopied(true),
-                () => setCopied(false),
-              );
-            }}
-          >
-            abrir conversa
-          </a>
-        )}
-        <form action={sendAction}>
-          <input type="hidden" name="leadId" value={row.leadId} />
-          <input type="hidden" name="kind" value={kind} />
-          <input type="hidden" name="message" value={text} />
-          <button type="submit" disabled={locked || sending} className={`${btn} border-zinc-900`}>
-            enviei
-          </button>
-        </form>
-        {kind === "first" && (
-          <form action={skipAction}>
-            <input type="hidden" name="leadId" value={row.leadId} />
-            <button type="submit" disabled={skipping} className={`${btn} border-zinc-300`}>
-              pular hoje
-            </button>
-          </form>
-        )}
-        {copyOnOpen && (
-          <span className="text-xs text-zinc-500">
-            {copied ? "mensagem copiada, é só colar" : "ao abrir, a mensagem é copiada"}
+    <li>
+      <details open={next} className={`card ${next ? "border-line-strong" : ""}`}>
+        <summary className="flex items-center justify-between gap-4 p-5">
+          <span className="min-w-0">
+            <span className="block truncate text-lg font-semibold tracking-tight">{row.name}</span>
+            <span className="block truncate text-[13px] leading-5 text-ink-muted">
+              {[row.place, channel].filter(Boolean).join(" · ")}
+            </span>
           </span>
-        )}
-      </div>
+          {row.score !== null && <span className="chip font-mono">nota {row.score}</span>}
+        </summary>
 
-      {state && (
-        <p className={`text-sm ${state.ok ? "text-emerald-700" : "text-red-700"}`}>
-          {state.message}
-        </p>
-      )}
+        <div className="flex flex-col gap-4 px-5 pb-5">
+          {row.finding && (
+            <p>
+              {row.finding}{" "}
+              <span className="text-[13px] text-ink-muted">
+                {row.findingWhen && `Verificado ${row.findingWhen}`}
+                {row.evidenceUrl && (
+                  <>
+                    {" · "}
+                    <a
+                      href={row.evidenceUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-brand-text"
+                    >
+                      ver evidência
+                    </a>
+                  </>
+                )}
+              </span>
+            </p>
+          )}
+
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            rows={Math.min(12, text.split("\n").length + 3)}
+            aria-label={`Mensagem para ${row.name}`}
+            className="field w-full"
+          />
+
+          {row.byAi && (
+            <p className="text-[13px] leading-5 text-warning">
+              Abertura escrita por IA a partir do anúncio. Leia e ajuste antes de enviar.
+            </p>
+          )}
+
+          <div className="flex flex-wrap items-center gap-2">
+            {locked ? (
+              <span className={`btn ${next ? "btn-brand" : ""}`} aria-disabled="true">
+                abrir conversa
+              </span>
+            ) : (
+              <a
+                href={link}
+                target="_blank"
+                rel="noreferrer"
+                className={`btn ${next ? "btn-brand" : ""}`}
+                onClick={() => {
+                  if (!copyOnOpen) return;
+                  navigator.clipboard.writeText(text).then(
+                    () => setCopied(true),
+                    () => setCopied(false),
+                  );
+                }}
+              >
+                abrir conversa
+              </a>
+            )}
+            <form action={sendAction}>
+              <input type="hidden" name="leadId" value={row.leadId} />
+              <input type="hidden" name="kind" value={kind} />
+              <input type="hidden" name="message" value={text} />
+              <button type="submit" disabled={locked || sending} className="btn">
+                enviei
+              </button>
+            </form>
+            {kind === "first" && (
+              <form action={skipAction}>
+                <input type="hidden" name="leadId" value={row.leadId} />
+                <button type="submit" disabled={skipping} className="btn btn-ghost">
+                  pular hoje
+                </button>
+              </form>
+            )}
+            <Link href={`/leads/${row.leadId}`} className="btn btn-ghost">
+              ver lead
+            </Link>
+            {copyOnOpen && (
+              <span className="text-[13px] text-ink-muted">
+                {copied ? "mensagem copiada, é só colar" : "ao abrir, a mensagem é copiada"}
+              </span>
+            )}
+          </div>
+
+          {state && (
+            <p className={`text-sm ${state.ok ? "text-success" : "text-danger"}`}>
+              {state.message}
+            </p>
+          )}
+        </div>
+      </details>
     </li>
   );
 }
