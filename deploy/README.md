@@ -44,7 +44,7 @@ No painel do app, aba **Settings → Domains**: adicione `app.datalab137.com`. O
 
 O app não migra sozinho, de propósito. E a migração tem que rodar **antes** do push: o app publica a cada push na `main`, e código novo com banco antigo quebra as telas. Migração que só acrescenta coluna pode rodar com o app antigo no ar.
 
-**Última aplicada em produção: `0003_messy_wendigo` (19/11/2026).**
+**Última aplicada em produção: `0004_wakeful_komodo` (20/11/2026).**
 
 O banco é o "dev database" do App Platform (`dev-db-767412`), e ele tem três particularidades medidas em 19/11/2026:
 
