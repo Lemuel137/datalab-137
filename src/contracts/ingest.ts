@@ -21,10 +21,14 @@ const findingIn = z
     kind: z.enum(FINDING_KINDS).default("outro"),
     hook: opt,
     customerSide: opt,
-    hookBy: z.enum(["ia", "manual"]).nullish(),
+    // "vetado": a IA leu o achado e ele não sustenta mensagem; fica fora da fila e dos pendentes.
+    hookBy: z.enum(["ia", "manual", "vetado"]).nullish(),
   })
   .refine((f) => !(f.hook || f.customerSide) || Boolean(f.hookBy), {
     message: "Gancho ou lado do cliente exigem hookBy (ia ou manual).",
+  })
+  .refine((f) => f.hookBy !== "vetado" || !(f.hook || f.customerSide), {
+    message: "Achado vetado não leva gancho.",
   });
 
 const leadIn = z

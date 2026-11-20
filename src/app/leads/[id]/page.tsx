@@ -196,6 +196,11 @@ export default async function LeadPage({ params }: Props) {
                     {f.hookBy === "ia" && " · escrito por IA"}
                   </p>
                 )}
+                {f.hookBy === "vetado" && (
+                  <p className="mt-1 text-xs text-amber-700">
+                    A IA leu este achado e não escreveu abertura: ele não sustenta uma mensagem.
+                  </p>
+                )}
                 <p className="mt-1 text-xs text-zinc-500">
                   {FINDING_KIND_LABEL[f.kind as FindingKind] ?? f.kind} ·{" "}
                   {f.origin === "script" ? "medido por script" : "conferido no navegador"} ·

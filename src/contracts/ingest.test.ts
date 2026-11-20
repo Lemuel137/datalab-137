@@ -33,6 +33,20 @@ describe("ingestSchema", () => {
     });
     expect(r.success).toBe(false);
   });
+  it("aceita o veto da IA: achado que não sustenta mensagem, sem gancho", () => {
+    const r = ingestSchema.parse({
+      front: "delivery",
+      leads: [{ ...lead, findings: [{ ...finding, hookBy: "vetado" }] }],
+    });
+    expect(r.leads[0].findings[0]).toMatchObject({ hookBy: "vetado", hook: null });
+  });
+  it("veto não pode vir com gancho", () => {
+    const r = ingestSchema.safeParse({
+      front: "delivery",
+      leads: [{ ...lead, findings: [{ ...finding, hookBy: "vetado", hook: "o anúncio X" }] }],
+    });
+    expect(r.success).toBe(false);
+  });
   it("limita o lote a 300 leads", () => {
     const leads = Array.from({ length: 301 }, () => lead);
     expect(ingestSchema.safeParse({ front: "delivery", leads }).success).toBe(false);
@@ -56,19 +70,28 @@ describe("mergeFinding", () => {
   const old = { id: "f1", kind: "cardapio_fraco", summary: finding.summary, hook: "o anúncio X" };
 
   it("mesma medição: só avança a data e mantém o gancho", () => {
-    expect(mergeFinding([old], { kind: "cardapio_fraco", summary: ` ${finding.summary.toUpperCase()} ` })).toEqual({
+    expect(
+      mergeFinding([old], {
+        kind: "cardapio_fraco",
+        summary: ` ${finding.summary.toUpperCase()} `,
+      }),
+    ).toEqual({
       action: "touch",
       id: "f1",
     });
   });
   it("medição diferente: troca o achado, e o gancho velho não fica", () => {
-    expect(mergeFinding([old], { kind: "cardapio_fraco", summary: "a Margherita está sem foto" })).toEqual({
+    expect(
+      mergeFinding([old], { kind: "cardapio_fraco", summary: "a Margherita está sem foto" }),
+    ).toEqual({
       action: "replace",
       removeIds: ["f1"],
     });
   });
   it("outro tipo de achado não é tocado", () => {
-    expect(mergeFinding([{ ...old, kind: "destino_anuncio" }], { kind: "cardapio_fraco", summary: "x" })).toEqual({
+    expect(
+      mergeFinding([{ ...old, kind: "destino_anuncio" }], { kind: "cardapio_fraco", summary: "x" }),
+    ).toEqual({
       action: "replace",
       removeIds: [],
     });
