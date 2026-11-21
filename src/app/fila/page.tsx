@@ -297,7 +297,7 @@ function Fila({
                 <span className="font-mono text-ink-muted">{excluded.vencidos.length}</span>
               </li>
               <li className={row}>
-                Falta gancho no achado
+                Aguardando revisão da IA ou gancho que o texto pede
                 <span className="font-mono text-ink-muted">{excluded.semGancho.length}</span>
               </li>
               <li className={row}>

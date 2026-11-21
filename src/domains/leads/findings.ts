@@ -32,7 +32,7 @@ export async function createFinding(input: unknown) {
 export async function reconfirmFinding(findingId: string, now = new Date()) {
   const rows = await db
     .update(findings)
-    .set({ verifiedAt: now })
+    .set({ verifiedAt: now, confirmedAt: now })
     .where(and(eq(findings.id, findingId), eq(findings.origin, "conferido")))
     .returning({ leadId: findings.leadId });
   return rows.length

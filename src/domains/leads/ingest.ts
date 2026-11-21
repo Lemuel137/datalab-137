@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq, inArray, isNull, ne, or, sql, type SQL } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql, type SQL } from "drizzle-orm";
 import { db } from "@/db/client";
 import { contacts, findings, fronts, leads } from "@/db/schema";
 import { isBlockedCity, mergeFinding, sourceKey, type IngestPayload } from "@/contracts/ingest";
@@ -178,9 +178,8 @@ export async function pendingHooks(frontSlug: string) {
       and(
         eq(fronts.slug, frontSlug),
         eq(findings.origin, "script"),
-        or(isNull(findings.hook), isNull(findings.customerSide)),
-        // Vetado pela IA: só volta a ser avaliado se a medição mudar (vira achado novo).
-        or(isNull(findings.hookBy), ne(findings.hookBy, "vetado")),
+        // Revisado (aprovado ou vetado) só volta se a medição mudar (vira achado novo).
+        isNull(findings.hookBy),
         inArray(leads.stage, ["importado", "qualificado", "aprovado"]),
         sql`not exists (select 1 from ${contacts} where ${contacts.leadId} = ${leads.id})`,
       ),

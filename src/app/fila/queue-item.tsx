@@ -17,7 +17,7 @@ export type QueueRow = {
   /** Preenchido quando o achado exige conferência e ainda não foi conferido hoje. */
   findingId: string | null;
   /** O que conferir, quando o tipo do achado exige conferência. */
-  checkText: string | null;
+  checkText: string;
   /** Onde conferir o achado: cardápio, anúncios, página. */
   links: { label: string; href: string }[];
   /** Itens que a medição apontou (até 12 nomes) e o total. */
@@ -127,7 +127,7 @@ export function QueueItem({
 
           {row.byAi && (
             <p className="text-[13px] leading-5 text-warning">
-              Abertura escrita por IA a partir do anúncio. Leia e ajuste antes de enviar.
+              Achado medido por script e revisado por IA. Confira no link antes de enviar.
             </p>
           )}
 

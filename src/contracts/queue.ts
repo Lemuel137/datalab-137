@@ -233,8 +233,8 @@ export type QItem = {
 };
 
 /**
- * Tipos de achado que o Lemuel confere no navegador antes de cada envio, mesmo
- * medidos por script: a reclamação pode ter sido respondida depois da medição.
+ * Todo achado é conferido no navegador antes de cada envio, mesmo medido por
+ * script: o fato pode ter mudado depois da medição. Aqui, o que olhar em cada tipo.
  */
 const CHECK_INSTRUCTION: Record<string, string> = {
   avaliacao_sem_resposta:
@@ -242,19 +242,20 @@ const CHECK_INSTRUCTION: Record<string, string> = {
   // O Captor baixa uma amostra dos anúncios de cada página, não todos.
   anuncio_parado:
     "Abra a Biblioteca de Anúncios e confirme que não há anúncio mais novo que a data do achado.",
+  cardapio_fraco: "Abra o cardápio e confirme que os itens citados continuam como o achado diz.",
 };
-const CHECK_KINDS = Object.keys(CHECK_INSTRUCTION);
+const CHECK_DEFAULT = "Abra a evidência e confirme que o achado continua valendo.";
 
-/** O que conferir antes de enviar, para os tipos que exigem conferência; null para os demais. */
-export function checkInstruction(kind: string | undefined): string | null {
-  return CHECK_INSTRUCTION[kind ?? ""] ?? null;
+/** O que conferir antes de enviar. */
+export function checkInstruction(kind: string | undefined): string {
+  return CHECK_INSTRUCTION[kind ?? ""] ?? CHECK_DEFAULT;
 }
 
 export function needsCheck(
   finding: { kind?: string; confirmedAt?: Date | null } | null,
   now: Date,
 ): boolean {
-  if (!finding || !CHECK_KINDS.includes(finding.kind ?? "")) return false;
+  if (!finding) return false;
   return !finding.confirmedAt || spDay(finding.confirmedAt) !== spDay(now);
 }
 export type Queue = {
@@ -269,7 +270,7 @@ export type Queue = {
   excluded: {
     semTexto: boolean;
     vencidos: QLead[];
-    /** Achado válido, mas sem gancho ou lado do cliente que o texto da frente pede. */
+    /** Achado válido, mas ainda sem a revisão da IA ou sem uma parte que o texto pede. */
     semGancho: QLead[];
     semContato: number;
     semEngajamento: number;
@@ -340,7 +341,8 @@ export function selectQueue(i: {
         !cs[0].repliedAt &&
         businessDaysBetween(cs[0].sentAt, now) >= FOLLOW_UP_BUSINESS_DAYS;
       const it = due ? item(lead, front.followUpTemplate, latest(lead.id)) : null;
-      if (it) followUps.push(it);
+      // Conferência é do achado; o follow-up não afirma achado.
+      if (it) followUps.push({ ...it, needsCheck: false });
     }
   }
   channelRemaining -= followUps.length;
@@ -394,6 +396,8 @@ export function selectQueue(i: {
       // O primeiro achado válido que tem texto para o tipo dele e todas as partes que o texto pede.
       let it: QItem | null = null;
       for (const finding of valid) {
+        // Medido por script só vai à pessoa depois da revisão da IA (aprova ou veta).
+        if (finding.origin === "script" && !finding.hookBy) continue;
         const template = templateFor(finding);
         it = template ? item(lead, template, finding) : null;
         if (it) break;

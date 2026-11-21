@@ -187,12 +187,14 @@ export default async function LeadPage({ params }: Props) {
                 {(f.hook || f.customerSide) && (
                   <p className="mt-1 text-xs text-ink-muted">
                     gancho: {f.hook ?? "—"} · lado do cliente: {f.customerSide ?? "—"}
-                    {f.hookBy === "ia" && " · escrito por IA"}
                   </p>
+                )}
+                {f.hookBy === "ia" && (
+                  <p className="mt-1 text-xs text-ink-muted">Revisado por IA: sustenta mensagem.</p>
                 )}
                 {f.hookBy === "vetado" && (
                   <p className="mt-1 text-xs text-warning">
-                    A IA leu este achado e não escreveu abertura: ele não sustenta uma mensagem.
+                    A IA leu este achado e vetou: ele não sustenta uma mensagem.
                   </p>
                 )}
                 <p className="mt-1 text-xs text-ink-muted">

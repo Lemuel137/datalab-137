@@ -64,6 +64,13 @@
       "when": 1795205986092,
       "tag": "0008_texto_avaliacao_delivery",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1795300000000,
+      "tag": "0009_textos_fato_e_pergunta",
+      "breakpoints": true
     }
   ]
 }

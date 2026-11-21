@@ -174,6 +174,7 @@ describe("selectQueue", () => {
     evidenceUrl: "https://cardapio.example/x",
     hook: null,
     customerSide: null,
+    hookBy: "ia",
   });
   const contact = (leadId: string, iso: string, over: Partial<QContact> = {}): QContact => ({
     id: `c-${leadId}-${iso}`,
@@ -408,6 +409,7 @@ describe("gancho e lado do cliente", () => {
       evidenceUrl: "https://x",
       hook,
       customerSide,
+      hookBy: hook ? "ia" : null,
     });
     const q = selectQueue({
       front,
@@ -672,8 +674,10 @@ describe("conferência obrigatória da avaliação", () => {
   it("conferida hoje (dia de Brasília) libera", () => {
     expect(check(f("avaliacao_sem_resposta", new Date("2026-11-19T07:30:00-03:00")))).toBe(false);
   });
-  it("achado de cardápio não pede conferência", () => {
-    expect(check(f("cardapio_fraco", null))).toBe(false);
+  it("todo achado pede conferência, inclusive o de cardápio", () => {
+    expect(check(f("cardapio_fraco", null))).toBe(true);
+    expect(check(f("cardapio_fraco", new Date("2026-11-19T07:30:00-03:00")))).toBe(false);
+    expect(check(f("outro", null))).toBe(true);
   });
 });
 
@@ -724,6 +728,83 @@ describe("achado de anúncio parado", () => {
   it("cada tipo com conferência tem a sua instrução", () => {
     expect(checkInstruction("anuncio_parado")).toContain("Biblioteca");
     expect(checkInstruction("avaliacao_sem_resposta")).toContain("avaliações");
-    expect(checkInstruction("cardapio_fraco")).toBeNull();
+    expect(checkInstruction("cardapio_fraco")).toContain("cardápio");
+    expect(checkInstruction("tipo_novo")).toContain("evidência");
+  });
+});
+
+describe("revisão antes da fila", () => {
+  const front: QFront = {
+    channel: "whatsapp",
+    dailyLimit: 15,
+    weeklyTarget: 50,
+    findingPolicy: "script",
+    messageTemplate: "Oi, tudo bem? {achado}. E aí?",
+    followUpTemplate: "Oi, voltando só uma vez.",
+    usesEngagement: false,
+    engagementMin: null,
+  };
+  const lead = (id: string, stage: QLead["stage"] = "importado"): QLead => ({
+    id,
+    name: id,
+    stage,
+    whatsapp: "47992706419",
+    phone: null,
+    instagram: null,
+    followers: null,
+    engagementPct: null,
+    signals: {},
+    createdAt: QUI,
+  });
+  const f = (leadId: string, over: Partial<QFinding>): QFinding => ({
+    leadId,
+    kind: "cardapio_fraco",
+    summary: "achado",
+    origin: "script",
+    verifiedAt: new Date(QUI.getTime() - 3600_000),
+    evidenceUrl: "https://x",
+    hook: null,
+    customerSide: null,
+    hookBy: null,
+    ...over,
+  });
+
+  it("achado de script só entra depois de revisado; o manual entra direto", () => {
+    const q = selectQueue({
+      front,
+      leads: [lead("revisado"), lead("cru"), lead("manual")],
+      findings: [
+        f("revisado", { hookBy: "ia" }),
+        f("cru", {}),
+        f("manual", { origin: "conferido" }),
+      ],
+      contacts: [],
+      channelContacts: [],
+      now: QUI,
+    });
+    expect(q.novos.map((n) => n.lead.id).sort()).toEqual(["manual", "revisado"]);
+    expect(q.excluded.semGancho.map((l) => l.id)).toEqual(["cru"]);
+    expect(q.novos[0].message).toBe("Oi, tudo bem? achado. E aí?");
+  });
+
+  it("follow-up não pede conferência de achado", () => {
+    const q = selectQueue({
+      front,
+      leads: [lead("fu", "contatado")],
+      findings: [f("fu", { hookBy: "ia" })],
+      contacts: [
+        {
+          id: "c",
+          leadId: "fu",
+          channel: "whatsapp",
+          sentAt: new Date("2026-11-13T16:00:00-03:00"),
+          isFollowUp: false,
+          repliedAt: null,
+        },
+      ],
+      channelContacts: [],
+      now: QUI,
+    });
+    expect(q.followUps[0].needsCheck).toBe(false);
   });
 });
