@@ -90,6 +90,9 @@ export async function ingestLeads(payload: IngestPayload): Promise<IngestResult>
             phone: sql`coalesce(${leads.phone}, ${phone})`,
             instagram: sql`coalesce(${leads.instagram}, ${instagram})`,
             signals: sql`${leads.signals} || ${JSON.stringify(signals)}::jsonb`,
+            // Medição nova substitui a antiga; sem medição no envio, fica a que já havia.
+            ...(l.followers != null ? { followers: l.followers } : {}),
+            ...(l.engagementPct != null ? { engagementPct: l.engagementPct } : {}),
             updatedAt: new Date(),
           })
           .where(eq(leads.id, leadId));
@@ -106,6 +109,8 @@ export async function ingestLeads(payload: IngestPayload): Promise<IngestResult>
             phone,
             instagram,
             source: "ingest",
+            followers: l.followers ?? null,
+            engagementPct: l.engagementPct ?? null,
             signals,
           })
           .returning({ id: leads.id });

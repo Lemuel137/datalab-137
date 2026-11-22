@@ -808,3 +808,15 @@ describe("revisão antes da fila", () => {
     expect(q.followUps[0].needsCheck).toBe(false);
   });
 });
+
+describe("validade do achado de destino do anúncio", () => {
+  const f = (h: number) => ({
+    origin: "script",
+    kind: "destino_anuncio",
+    verifiedAt: new Date(QUI.getTime() - h * 3600_000),
+  });
+  it("medido por script vale 7 dias: a conferência do dia pega o que mudou", () => {
+    expect(validFindings("script", [f(6 * 24)], QUI)).toHaveLength(1);
+    expect(validFindings("script", [f(8 * 24)], QUI)).toHaveLength(0);
+  });
+});

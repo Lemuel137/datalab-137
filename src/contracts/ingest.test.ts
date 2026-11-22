@@ -151,3 +151,29 @@ describe("tipo de achado de avaliação", () => {
     expect(r.leads[0].findings[0].kind).toBe("avaliacao_sem_resposta");
   });
 });
+
+describe("seguidores e engajamento pela porta", () => {
+  it("aceita os dois números medidos", () => {
+    const r = ingestSchema.parse({
+      front: "ecommerce",
+      leads: [{ name: "Loja X", instagram: "@lojax", followers: 73000, engagementPct: 0.12 }],
+    });
+    expect(r.leads[0].followers).toBe(73000);
+    expect(r.leads[0].engagementPct).toBe(0.12);
+  });
+  it("sem medição fica nulo, e número impossível é recusado", () => {
+    const ok = ingestSchema.parse({
+      front: "ecommerce",
+      leads: [{ name: "Loja X", instagram: "@lojax" }],
+    });
+    expect(ok.leads[0].followers ?? null).toBeNull();
+    const bad = (extra: object) =>
+      ingestSchema.safeParse({
+        front: "ecommerce",
+        leads: [{ name: "Loja X", instagram: "@lojax", ...extra }],
+      }).success;
+    expect(bad({ followers: -1 })).toBe(false);
+    expect(bad({ followers: 1.5 })).toBe(false);
+    expect(bad({ engagementPct: 101 })).toBe(false);
+  });
+});

@@ -77,6 +77,8 @@ const SCRIPT_VALID_HOURS: Record<string, number> = {
   // A data de início de um anúncio não muda; o que muda é entrar anúncio novo, e isso a
   // conferência obrigatória pega. Vale 14 dias a partir da coleta.
   anuncio_parado: 14 * 24,
+  // Produto que saiu do site e segue anunciado: a conferência do dia pega o que foi corrigido.
+  destino_anuncio: 7 * 24,
 };
 const DEFAULT_SCRIPT_VALID_HOURS = 24;
 

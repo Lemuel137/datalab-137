@@ -40,6 +40,9 @@ const leadIn = z
     city: opt,
     uf: opt,
     sourceUrl: z.url().nullish(),
+    // Medidos no perfil do Instagram; a régua de engajamento da frente usa os dois.
+    followers: z.number().int().min(0).max(1_000_000_000).nullish(),
+    engagementPct: z.number().min(0).max(100).nullish(),
     signals: z.record(z.string(), z.unknown()).default({}),
     findings: z.array(findingIn).max(5).default([]),
   })
