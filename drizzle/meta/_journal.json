@@ -78,6 +78,13 @@
       "when": 1795400000000,
       "tag": "0010_textos_rapport_e_ecommerce",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1795500000000,
+      "tag": "0011_pergunta_anuncio_parado",
+      "breakpoints": true
     }
   ]
 }
