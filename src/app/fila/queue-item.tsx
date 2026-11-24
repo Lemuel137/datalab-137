@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { conferi, enviei, pular } from "./actions";
 import type { LeadActionState } from "@/contracts/journey";
+import { waitLabel } from "@/contracts/queue";
 import { NoteForm } from "@/app/leads/[id]/note-form";
 
 export type QueueRow = {
@@ -33,7 +34,7 @@ export function QueueItem({
   kind,
   channel,
   copyOnOpen,
-  locked,
+  unlockAt,
   next,
 }: {
   row: QueueRow;
@@ -41,7 +42,8 @@ export function QueueItem({
   channel: string;
   /** Instagram não aceita texto no link: a mensagem vai para a área de transferência. */
   copyOnOpen: boolean;
-  locked: boolean;
+  /** Quando o canal libera o próximo envio (intervalo mínimo); null se já está liberado. */
+  unlockAt: number | null;
   /** O lead da vez: abre expandido e é o único com a ação principal em destaque. */
   next: boolean;
 }) {
@@ -55,6 +57,15 @@ export function QueueItem({
     undefined,
   );
   const [copied, setCopied] = useState(false);
+  // Conta o intervalo do canal aqui mesmo: o botão destrava sem recarregar a página.
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  useEffect(() => {
+    if (!unlockAt) return;
+    const t = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [unlockAt]);
+  const left = unlockAt ? Math.max(0, unlockAt - nowMs) : 0;
+  const locked = left > 0;
   // O texto montado é ponto de partida: dá para ajustar antes de abrir a conversa.
   const [text, setText] = useState(row.message);
   const base = row.link.split("?text=")[0];
@@ -193,12 +204,23 @@ export function QueueItem({
               ver lead
             </Link>
             {copyOnOpen && (
-              <span className="text-[13px] text-ink-muted">
-                {copied ? "mensagem copiada, é só colar" : "ao abrir, a mensagem é copiada"}
+              <span className={`text-[13px] ${copied ? "chip text-success" : "text-ink-muted"}`}>
+                {copied
+                  ? "mensagem copiada: cole na conversa (Cmd+V)"
+                  : "ao abrir, a mensagem é copiada"}
               </span>
             )}
           </div>
 
+          {locked && (
+            <p className="text-[13px] text-warning" aria-live="polite">
+              Libera em{" "}
+              <span className="font-mono" suppressHydrationWarning>
+                {waitLabel(left)}
+              </span>
+              : intervalo mínimo entre envios do canal.
+            </p>
+          )}
           {state && (
             <p className={`text-sm ${state.ok ? "text-success" : "text-danger"}`}>
               {state.message}

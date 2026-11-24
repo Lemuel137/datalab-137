@@ -18,6 +18,13 @@ export const contactFormSchema = z.object({
 export const replyFormSchema = z.object({
   contactId: z.uuid(),
   replyKind: z.enum(["pessoa", "robo", "recusa", "whatsapp"]),
+  // O que o lead escreveu, colado como veio: é a base da segunda mensagem.
+  replyText: z
+    .string()
+    .trim()
+    .max(4000)
+    .nullish()
+    .transform((v) => v || null),
 });
 
 export type LeadActionState = { ok: boolean; message: string } | undefined;

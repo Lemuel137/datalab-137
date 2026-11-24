@@ -7,6 +7,7 @@ import { sessaoAtual } from "@/domains/auth/session";
 import { FindingForm, ReconfirmButton } from "./finding-form";
 import { MetricsForm } from "./metrics-form";
 import { NoteForm } from "./note-form";
+import { REPLY_RULE, replyGuide } from "@/contracts/reply-guide";
 import { checkEngagement } from "@/contracts/engagement";
 import { FINDING_KIND_LABEL, type FindingKind } from "@/contracts/finding";
 import { StageButtons, ContactForm, ReplyForm } from "./journey-forms";
@@ -37,6 +38,13 @@ export default async function LeadPage({ params }: Props) {
       : "instagram";
   const temEnvio = historico.length > 0;
   const temFollowUp = historico.some((c) => c.isFollowUp);
+  // Respondeu como pessoa: mostra o roteiro da segunda mensagem, pelo achado que abriu a conversa.
+  const respondeu = historico.some(
+    (c) => c.repliedAt && (c.replyKind === "pessoa" || c.replyKind === "whatsapp"),
+  );
+  const guia = respondeu
+    ? replyGuide(list.find((f) => f.hookBy !== "vetado")?.kind ?? undefined)
+    : null;
 
   const signals = Object.entries(lead.signals ?? {}).filter(
     ([, v]) => v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0),
@@ -147,16 +155,35 @@ export default async function LeadPage({ params }: Props) {
                 </p>
                 <p className="mt-1 whitespace-pre-wrap">{c.message}</p>
                 {c.repliedAt ? (
-                  <p className="mt-1 text-xs text-success">
-                    resposta: {c.replyKind} em{" "}
-                    {c.repliedAt.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}
-                  </p>
+                  <div className="mt-2 border-t border-line pt-2">
+                    <p className="text-xs text-success">
+                      resposta: {c.replyKind} em{" "}
+                      {c.repliedAt.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}
+                    </p>
+                    {c.replyText && <p className="mt-1 whitespace-pre-wrap">{c.replyText}</p>}
+                  </div>
                 ) : (
                   <ReplyForm leadId={lead.id} contactId={c.id} />
                 )}
               </li>
             ))}
           </ul>
+        )}
+
+        {guia && (
+          <div className="card mb-4 flex flex-col gap-3 p-4 text-sm">
+            <h3 className="font-semibold tracking-tight">O que responder agora</h3>
+            <p className="text-[13px] text-ink-muted">{REPLY_RULE}</p>
+            <p className="text-[13px] text-ink-muted">Ponte: {guia.bridge}</p>
+            <ul className="flex flex-col gap-3">
+              {guia.cases.map((g) => (
+                <li key={g.when}>
+                  <p className="label-caps">{g.when}</p>
+                  <p className="mt-1 select-all">{g.text}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
 
         {(lead.stage === "aprovado" || lead.stage === "contatado") && (

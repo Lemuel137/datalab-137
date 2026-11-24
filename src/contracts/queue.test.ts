@@ -13,6 +13,7 @@ import {
   spDay,
   validFinding,
   validFindings,
+  waitLabel,
   weekStart,
   type QContact,
   type QFinding,
@@ -895,5 +896,45 @@ describe("achados de e-commerce: criativo e página de produto", () => {
       {},
     );
     expect(links[0].label).toBe("abrir produto");
+  });
+});
+
+describe("botão para a loja, o cardápio ou o Instagram", () => {
+  const f = { kind: "anuncio_parado", evidenceUrl: "https://www.facebook.com/ads/library/?x=1" };
+  it("delivery abre o cardápio; loja virtual abre o site", () => {
+    const d = checkLinks(
+      f,
+      { plataforma: "anota.ai" },
+      { site: "https://pedido.anota.ai/loja/x", instagram: "x" },
+    );
+    expect(d.at(-1)).toEqual({ label: "abrir cardápio", href: "https://pedido.anota.ai/loja/x" });
+    const e = checkLinks(f, {}, { site: "https://loja.example", instagram: "x" });
+    expect(e.at(-1)?.label).toBe("abrir site");
+  });
+  it("sem site, cai no Instagram; sem nada, não inventa botão", () => {
+    const i = checkLinks(f, {}, { site: null, instagram: "@lojax" });
+    expect(i.at(-1)).toEqual({
+      label: "abrir Instagram",
+      href: "https://www.instagram.com/lojax/",
+    });
+    expect(checkLinks(f, {}, { site: null, instagram: null })).toHaveLength(1);
+  });
+  it("não repete o endereço que já é a evidência, nem aceita endereço que não é http", () => {
+    const c = { kind: "cardapio_fraco", evidenceUrl: "https://pedido.anota.ai/loja/x" };
+    expect(
+      checkLinks(c, {}, { site: "https://pedido.anota.ai/loja/x", instagram: null }),
+    ).toHaveLength(1);
+    expect(checkLinks(f, {}, { site: "javascript:alert(1)", instagram: "a b/../c" })).toHaveLength(
+      1,
+    );
+  });
+});
+
+describe("contagem do intervalo entre envios", () => {
+  it("mostra minutos e segundos, e nada quando já liberou", () => {
+    expect(waitLabel(83_000)).toBe("1:23");
+    expect(waitLabel(5_400)).toBe("0:06");
+    expect(waitLabel(0)).toBeNull();
+    expect(waitLabel(-10)).toBeNull();
   });
 });

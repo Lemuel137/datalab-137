@@ -51,10 +51,15 @@ export async function addReply(
   const parsed = replyFormSchema.safeParse({
     contactId: formData.get("contactId"),
     replyKind: formData.get("replyKind"),
+    replyText: formData.get("replyText"),
   });
   if (!parsed.success) return { ok: false, message: "Resposta inválida." };
 
-  const result = await registerReply(parsed.data.contactId, parsed.data.replyKind);
+  const result = await registerReply(
+    parsed.data.contactId,
+    parsed.data.replyKind,
+    parsed.data.replyText,
+  );
   if (result.ok && leadId) refresh(leadId);
   return result;
 }

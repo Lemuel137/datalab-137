@@ -120,6 +120,7 @@ export async function registerContact(input: {
 export async function registerReply(
   contactId: string,
   replyKind: "pessoa" | "robo" | "recusa" | "whatsapp",
+  replyText: string | null = null,
 ): Promise<ActionResult> {
   const [contact] = await db.select().from(contacts).where(eq(contacts.id, contactId)).limit(1);
   if (!contact) return { ok: false, message: "Envio não encontrado." };
@@ -127,7 +128,7 @@ export async function registerReply(
 
   await db
     .update(contacts)
-    .set({ repliedAt: new Date(), replyKind })
+    .set({ repliedAt: new Date(), replyKind, replyText })
     .where(eq(contacts.id, contactId));
 
   if (replyKind === "pessoa" || replyKind === "whatsapp") {

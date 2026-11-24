@@ -108,11 +108,26 @@ export function ReplyForm({ leadId, contactId }: { leadId: string; contactId: st
   const [state, action, pending] = useActionState<LeadActionState, FormData>(addReply, undefined);
 
   return (
-    <div className="mt-2 flex flex-wrap items-center gap-2">
-      <form action={action} className="flex items-center gap-2">
-        <input type="hidden" name="leadId" value={leadId} />
-        <input type="hidden" name="contactId" value={contactId} />
-        <select name="replyKind" defaultValue="pessoa" className="field text-xs">
+    <form action={action} className="mt-3 flex flex-col gap-2 border-t border-line pt-3">
+      <input type="hidden" name="leadId" value={leadId} />
+      <input type="hidden" name="contactId" value={contactId} />
+      <label className="flex flex-col gap-1 text-sm">
+        O que responderam
+        <textarea
+          name="replyText"
+          rows={3}
+          maxLength={4000}
+          placeholder="Cole aqui a resposta, como veio"
+          className="field w-full text-sm"
+        />
+      </label>
+      <div className="flex flex-wrap items-center gap-2">
+        <select
+          name="replyKind"
+          defaultValue="pessoa"
+          className="field text-xs"
+          aria-label="Quem respondeu"
+        >
           <option value="pessoa">pessoa</option>
           <option value="whatsapp">pediu whatsapp</option>
           <option value="robo">robô</option>
@@ -121,8 +136,8 @@ export function ReplyForm({ leadId, contactId }: { leadId: string; contactId: st
         <button type="submit" disabled={pending} className="btn text-xs">
           registrar resposta
         </button>
-      </form>
-      <Msg state={state} />
-    </div>
+        <Msg state={state} />
+      </div>
+    </form>
   );
 }

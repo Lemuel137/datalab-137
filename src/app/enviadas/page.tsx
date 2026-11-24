@@ -33,6 +33,7 @@ export default async function EnviadasPage() {
       channel: contacts.channel,
       isFollowUp: contacts.isFollowUp,
       repliedAt: contacts.repliedAt,
+      replyText: contacts.replyText,
       leadId: leads.id,
       name: leads.name,
       note: leads.note,
@@ -87,6 +88,11 @@ export default async function EnviadasPage() {
                   <p className="text-[13px] text-ink-muted">
                     {r.repliedAt && <span className="text-success">Respondeu. </span>}
                     {r.note}
+                  </p>
+                )}
+                {r.replyText && (
+                  <p className="whitespace-pre-wrap border-t border-line pt-2 text-sm text-ink-muted">
+                    {r.replyText}
                   </p>
                 )}
               </li>

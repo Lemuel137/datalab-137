@@ -39,7 +39,7 @@ function toRow(it: QItem): QueueRow {
     byAi: it.finding?.hookBy === "ia",
     findingId: it.needsCheck && it.finding && "id" in it.finding ? String(it.finding.id) : null,
     checkText: checkInstruction(it.finding?.kind),
-    links: checkLinks(it.finding, s),
+    links: checkLinks(it.finding, s, it.lead),
     items: measured(it.finding?.kind, it.finding?.summary ?? "", s),
     note: it.lead.note ?? null,
     message: it.message,
@@ -170,6 +170,8 @@ function Fila({
   now: Date;
 }) {
   const locked = queue.waitMs > 0;
+  // Hora em que o canal libera o próximo envio: cada item conta o tempo sozinho.
+  const unlockAt = locked ? now.getTime() + queue.waitMs : null;
   const copyOnOpen = front.channel === "instagram";
   const channel = CHANNEL_LABEL[front.channel] ?? front.channel;
   const { excluded } = queue;
@@ -201,7 +203,7 @@ function Fila({
       {locked && (
         <p className="text-sm text-warning">
           Próximo envio liberado às {fmtTime.format(new Date(now.getTime() + queue.waitMs))}{" "}
-          (intervalo mínimo do canal). Recarregue a página depois disso.
+          (intervalo mínimo do canal). Os botões destravam sozinhos.
         </p>
       )}
       {excluded.semTexto && (
@@ -234,7 +236,7 @@ function Fila({
                     kind="first"
                     channel={channel}
                     copyOnOpen={copyOnOpen}
-                    locked={locked}
+                    unlockAt={unlockAt}
                     next={i === 0}
                   />
                 ))}
@@ -261,7 +263,7 @@ function Fila({
                     kind="followup"
                     channel={channel}
                     copyOnOpen={copyOnOpen}
-                    locked={locked}
+                    unlockAt={unlockAt}
                     next={queue.novos.length === 0 && it === queue.followUps[0]}
                   />
                 ))}

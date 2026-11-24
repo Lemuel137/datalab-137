@@ -186,6 +186,13 @@ export function gapWaitMs(channel: Channel, lastSentAt: Date | null, now: Date):
   return Math.max(0, gap - (now.getTime() - lastSentAt.getTime()));
 }
 
+/** Contagem do intervalo entre envios, como "1:23"; null quando já liberou. */
+export function waitLabel(ms: number): string | null {
+  if (ms <= 0) return null;
+  const s = Math.ceil(ms / 1000);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
 export type QLead = {
   id: string;
   name: string;
@@ -197,6 +204,7 @@ export type QLead = {
   engagementPct: number | null;
   signals: Record<string, unknown>;
   note?: string | null;
+  site?: string | null;
   createdAt: Date;
 };
 export type QFinding = {
@@ -462,6 +470,7 @@ const isHttp = (v: unknown): v is string => typeof v === "string" && /^https?:\/
 export function checkLinks(
   finding: { kind?: string; evidenceUrl: string } | null,
   signals: Record<string, unknown>,
+  lead: { site?: string | null; instagram?: string | null } = {},
 ): CheckLink[] {
   const links: CheckLink[] = [];
   if (finding && isHttp(finding.evidenceUrl)) {
@@ -479,6 +488,13 @@ export function checkLinks(
   }
   if (isHttp(signals.pagina_fb))
     links.push({ label: "página no Facebook", href: signals.pagina_fb });
+  // A casa do lead, para olhar antes de escrever: cardápio (delivery), site ou, sem os dois, o Instagram.
+  const handle = /^@?([A-Za-z0-9._]{1,30})$/.exec(lead.instagram ?? "")?.[1];
+  if (isHttp(lead.site)) {
+    links.push({ label: signals.plataforma ? "abrir cardápio" : "abrir site", href: lead.site });
+  } else if (handle) {
+    links.push({ label: "abrir Instagram", href: `https://www.instagram.com/${handle}/` });
+  }
   // A evidência do anúncio parado é a própria Biblioteca: não repete o mesmo endereço.
   return links.filter((l, i) => links.findIndex((x) => x.href === l.href) === i);
 }

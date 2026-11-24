@@ -100,6 +100,8 @@ export const contacts = pgTable(
     isFollowUp: boolean("is_follow_up").notNull().default(false),
     repliedAt: timestamp("replied_at", { withTimezone: true }),
     replyKind: text("reply_kind"),
+    // O que o lead escreveu, colado como veio.
+    replyText: text("reply_text"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("contacts_lead_idx").on(t.leadId)],
