@@ -280,6 +280,9 @@ function Fila({
           </Side>
 
           <Side title="Enviados hoje" count={queue.sentTodayLeads.length}>
+            <Link href="/enviadas" className="text-[13px] text-brand-text hover:underline">
+              ver as mensagens enviadas
+            </Link>
             <ul className="mt-2">
               {queue.sentTodayLeads.map((l) => (
                 <li key={l.id} className={`${row} flex-col items-start gap-0.5`}>

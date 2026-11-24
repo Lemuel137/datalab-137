@@ -6,6 +6,7 @@ import { sair } from "./login/actions";
 
 const ITEMS = [
   { href: "/fila", label: "Fila" },
+  { href: "/enviadas", label: "Enviadas" },
   { href: "/leads", label: "Leads" },
   { href: "/frentes", label: "Frentes" },
   { href: "/briefings", label: "Briefings" },

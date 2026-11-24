@@ -241,7 +241,7 @@ export type QItem = {
  */
 const CHECK_INSTRUCTION: Record<string, string> = {
   avaliacao_sem_resposta:
-    "Abra as avaliações e confirme que as reclamações continuam sem resposta.",
+    'Abra as avaliações, ordene por "Mais recentes" e confirme que as reclamações continuam sem resposta.',
   // O Captor baixa uma amostra dos anúncios de cada página, não todos.
   anuncio_parado:
     "Abra a Biblioteca de Anúncios e confirme que não há anúncio mais novo que a data do achado.",
