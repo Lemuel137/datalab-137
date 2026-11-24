@@ -82,6 +82,8 @@ const SCRIPT_VALID_HOURS: Record<string, number> = {
   // Linha de criativo muda devagar; página de produto muda com o catálogo.
   criativo_sem_diferencial: 14 * 24,
   pagina_produto: 7 * 24,
+  // Campanha no Google entra de um dia para o outro; a conferência do envio pega.
+  sem_anuncio_google: 7 * 24,
 };
 const DEFAULT_SCRIPT_VALID_HOURS = 24;
 
@@ -264,6 +266,8 @@ const CHECK_INSTRUCTION: Record<string, string> = {
     "Abra a Biblioteca de Anúncios e confirme que os anúncios ativos são mesmo como o achado diz.",
   pagina_produto:
     "Abra dois produtos, role até o fim e confirme que continua faltando o que o achado diz.",
+  sem_anuncio_google:
+    "Abra a Central de Transparência de Anúncios do Google e confirme que o site segue sem anúncio; na ficha do Maps, confira a nota.",
 };
 const CHECK_DEFAULT = "Abra a evidência e confirme que o achado continua valendo.";
 
@@ -458,6 +462,7 @@ const EVIDENCE_LABEL: Record<string, string> = {
   anuncio_parado: "ver anúncios ativos",
   criativo_sem_diferencial: "ver anúncios ativos",
   pagina_produto: "abrir produto",
+  sem_anuncio_google: "ver anúncios no Google",
 };
 
 const isHttp = (v: unknown): v is string => typeof v === "string" && /^https?:\/\//.test(v);
@@ -488,6 +493,8 @@ export function checkLinks(
   }
   if (isHttp(signals.pagina_fb))
     links.push({ label: "página no Facebook", href: signals.pagina_fb });
+  if (isHttp(signals.ficha_maps))
+    links.push({ label: "abrir ficha no Maps", href: signals.ficha_maps });
   // A casa do lead, para olhar antes de escrever: cardápio (delivery), site ou, sem os dois, o Instagram.
   const handle = /^@?([A-Za-z0-9._]{1,30})$/.exec(lead.instagram ?? "")?.[1];
   if (isHttp(lead.site)) {

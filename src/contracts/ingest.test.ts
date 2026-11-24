@@ -200,3 +200,13 @@ describe("tipo de achado de criativo", () => {
     expect(r.success).toBe(true);
   });
 });
+
+describe("tipo de achado de ar-condicionado", () => {
+  it("a porta aceita sem_anuncio_google", () => {
+    const r = ingestSchema.parse({
+      front: "ar-condicionado",
+      leads: [{ ...lead, findings: [{ ...finding, kind: "sem_anuncio_google" }] }],
+    });
+    expect(r.leads[0].findings[0].kind).toBe("sem_anuncio_google");
+  });
+});

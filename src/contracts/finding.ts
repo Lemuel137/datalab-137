@@ -13,6 +13,7 @@ export const FINDING_KINDS = [
   "preco_inconsistente",
   "pagina_produto",
   "criativo_sem_diferencial",
+  "sem_anuncio_google",
   "outro",
 ] as const;
 
@@ -27,6 +28,7 @@ export const FINDING_KIND_LABEL: Record<FindingKind, string> = {
   preco_inconsistente: "Preço inconsistente",
   pagina_produto: "Página de produto",
   criativo_sem_diferencial: "Criativo sem diferencial",
+  sem_anuncio_google: "Sem anúncio no Google",
   outro: "Outro",
 };
 

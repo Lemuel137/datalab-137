@@ -938,3 +938,37 @@ describe("contagem do intervalo entre envios", () => {
     expect(waitLabel(-10)).toBeNull();
   });
 });
+
+describe("achado de empresa sem anúncio no Google", () => {
+  const f = {
+    kind: "sem_anuncio_google",
+    evidenceUrl: "https://adstransparency.google.com/?region=BR&domain=exemplo.com.br",
+  };
+  it("a evidência é a Central do Google e a ficha do Maps vem junto", () => {
+    expect(
+      checkLinks(
+        f,
+        { ficha_maps: "https://www.google.com/maps/place/x" },
+        {
+          site: "https://exemplo.com.br",
+        },
+      ),
+    ).toEqual([
+      { label: "ver anúncios no Google", href: f.evidenceUrl },
+      { label: "abrir ficha no Maps", href: "https://www.google.com/maps/place/x" },
+      { label: "abrir site", href: "https://exemplo.com.br" },
+    ]);
+    expect(checkLinks(f, { ficha_maps: "javascript:alert(1)" })).toHaveLength(1);
+  });
+  it("medição vale 7 dias e tem instrução própria de conferência", () => {
+    const now = new Date("2026-11-30T12:00:00Z");
+    const at = (d: number) => ({
+      ...f,
+      origin: "script",
+      verifiedAt: new Date(now.getTime() - d * 86400_000),
+    });
+    expect(validFinding("script", [at(6)], now)).not.toBeNull();
+    expect(validFinding("script", [at(8)], now)).toBeNull();
+    expect(checkInstruction("sem_anuncio_google")).toContain("Central de Transparência");
+  });
+});
