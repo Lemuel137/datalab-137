@@ -177,3 +177,26 @@ describe("seguidores e engajamento pela porta", () => {
     expect(bad({ engagementPct: 101 })).toBe(false);
   });
 });
+
+describe("tipo de achado de criativo", () => {
+  it("a porta aceita criativo_sem_diferencial", () => {
+    const r = ingestSchema.safeParse({
+      front: "ecommerce",
+      leads: [
+        {
+          name: "Loja X",
+          instagram: "@lojax",
+          findings: [
+            {
+              summary: "quase todos são foto do produto com o preço",
+              evidenceUrl: "https://www.facebook.com/ads/library/?view_all_page_id=123456",
+              verifiedAt: "2026-11-19T06:05:00-03:00",
+              kind: "criativo_sem_diferencial",
+            },
+          ],
+        },
+      ],
+    });
+    expect(r.success).toBe(true);
+  });
+});

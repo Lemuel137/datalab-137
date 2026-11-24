@@ -79,12 +79,18 @@ const SCRIPT_VALID_HOURS: Record<string, number> = {
   anuncio_parado: 14 * 24,
   // Produto que saiu do site e segue anunciado: a conferência do dia pega o que foi corrigido.
   destino_anuncio: 7 * 24,
+  // Linha de criativo muda devagar; página de produto muda com o catálogo.
+  criativo_sem_diferencial: 14 * 24,
+  pagina_produto: 7 * 24,
 };
 const DEFAULT_SCRIPT_VALID_HOURS = 24;
 
 /** Quando há mais de um achado válido, qual abre a mensagem. Quem não está na lista vai depois. */
 // Achado sobre o anúncio vem primeiro: é o assunto do que a agência vende.
 const KIND_PRIORITY = [
+  // E-commerce: o criativo abre a conversa; a página de produto fica para a segunda mensagem.
+  "criativo_sem_diferencial",
+  "pagina_produto",
   "destino_anuncio",
   "anuncio_parado",
   "avaliacao_sem_resposta",
@@ -246,6 +252,10 @@ const CHECK_INSTRUCTION: Record<string, string> = {
   anuncio_parado:
     "Abra a Biblioteca de Anúncios e confirme que não há anúncio mais novo que a data do achado.",
   cardapio_fraco: "Abra o cardápio e confirme que os itens citados continuam como o achado diz.",
+  criativo_sem_diferencial:
+    "Abra a Biblioteca de Anúncios e confirme que os anúncios ativos são mesmo como o achado diz.",
+  pagina_produto:
+    "Abra dois produtos, role até o fim e confirme que continua faltando o que o achado diz.",
 };
 const CHECK_DEFAULT = "Abra a evidência e confirme que o achado continua valendo.";
 
@@ -438,6 +448,8 @@ const EVIDENCE_LABEL: Record<string, string> = {
   cardapio_fraco: "abrir cardápio",
   avaliacao_sem_resposta: "abrir avaliações",
   anuncio_parado: "ver anúncios ativos",
+  criativo_sem_diferencial: "ver anúncios ativos",
+  pagina_produto: "abrir produto",
 };
 
 const isHttp = (v: unknown): v is string => typeof v === "string" && /^https?:\/\//.test(v);

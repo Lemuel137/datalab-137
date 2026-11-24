@@ -866,3 +866,34 @@ describe("enviados hoje", () => {
     expect(q.sentTodayLeads.map((l) => l.id)).toEqual(["hoje"]);
   });
 });
+
+describe("achados de e-commerce: criativo e página de produto", () => {
+  const f = (kind: string, h: number) => ({
+    origin: "script",
+    kind,
+    verifiedAt: new Date(QUI.getTime() - h * 3600_000),
+  });
+  it("criativo abre a conversa antes da página de produto", () => {
+    const ordem = validFindings(
+      "script",
+      [f("pagina_produto", 2), f("criativo_sem_diferencial", 5)],
+      QUI,
+    ).map((x) => x.kind);
+    expect(ordem).toEqual(["criativo_sem_diferencial", "pagina_produto"]);
+  });
+  it("criativo vale 14 dias e página de produto 7", () => {
+    expect(validFindings("script", [f("criativo_sem_diferencial", 13 * 24)], QUI)).toHaveLength(1);
+    expect(validFindings("script", [f("criativo_sem_diferencial", 15 * 24)], QUI)).toHaveLength(0);
+    expect(validFindings("script", [f("pagina_produto", 6 * 24)], QUI)).toHaveLength(1);
+    expect(validFindings("script", [f("pagina_produto", 8 * 24)], QUI)).toHaveLength(0);
+  });
+  it("cada um tem instrução e rótulo de conferência próprios", () => {
+    expect(checkInstruction("criativo_sem_diferencial")).toContain("Biblioteca");
+    expect(checkInstruction("pagina_produto")).toContain("dois produtos");
+    const links = checkLinks(
+      { kind: "pagina_produto", evidenceUrl: "https://loja.example/p/1" },
+      {},
+    );
+    expect(links[0].label).toBe("abrir produto");
+  });
+});

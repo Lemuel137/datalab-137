@@ -92,6 +92,13 @@
       "when": 1795600000000,
       "tag": "0012_observacao_lead",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1795700000000,
+      "tag": "0013_ecommerce_criativo_pagina",
+      "breakpoints": true
     }
   ]
 }
