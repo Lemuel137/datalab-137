@@ -41,6 +41,7 @@ function toRow(it: QItem): QueueRow {
     checkText: checkInstruction(it.finding?.kind),
     links: checkLinks(it.finding, s),
     items: measured(it.finding?.kind, it.finding?.summary ?? "", s),
+    note: it.lead.note ?? null,
     message: it.message,
     link: it.link,
   };
@@ -276,6 +277,19 @@ function Fila({
                 ? "Nenhum vence hoje."
                 : "Vencem hoje, abaixo dos novos."}
             </p>
+          </Side>
+
+          <Side title="Enviados hoje" count={queue.sentTodayLeads.length}>
+            <ul className="mt-2">
+              {queue.sentTodayLeads.map((l) => (
+                <li key={l.id} className={`${row} flex-col items-start gap-0.5`}>
+                  <Link href={`/leads/${l.id}`} className="truncate hover:text-brand-text">
+                    {l.name}
+                  </Link>
+                  {l.note && <span className="text-[13px] text-ink-muted">{l.note}</span>}
+                </li>
+              ))}
+            </ul>
           </Side>
 
           <Side title="Responderam" count={queue.replied.length}>

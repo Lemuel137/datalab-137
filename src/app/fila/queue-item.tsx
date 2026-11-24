@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState, useState } from "react";
 import { conferi, enviei, pular } from "./actions";
 import type { LeadActionState } from "@/contracts/journey";
+import { NoteForm } from "@/app/leads/[id]/note-form";
 
 export type QueueRow = {
   leadId: string;
@@ -22,6 +23,7 @@ export type QueueRow = {
   links: { label: string; href: string }[];
   /** Itens que a medição apontou (até 12 nomes) e o total. */
   items: { label: string; names: string[]; long: boolean } | null;
+  note: string | null;
   message: string;
   link: string;
 };
@@ -202,6 +204,8 @@ export function QueueItem({
               {state.message}
             </p>
           )}
+
+          <NoteForm leadId={row.leadId} note={row.note} />
         </div>
       </details>
     </li>

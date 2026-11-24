@@ -820,3 +820,49 @@ describe("validade do achado de destino do anúncio", () => {
     expect(validFindings("script", [f(8 * 24)], QUI)).toHaveLength(0);
   });
 });
+
+describe("enviados hoje", () => {
+  it("lista quem recebeu mensagem hoje, e só hoje", () => {
+    const lead = (id: string): QLead => ({
+      id,
+      name: id,
+      stage: "contatado",
+      whatsapp: "47992706419",
+      phone: null,
+      instagram: null,
+      followers: null,
+      engagementPct: null,
+      signals: {},
+      createdAt: QUI,
+    });
+    const c = (leadId: string, sentAt: Date) => ({
+      id: leadId,
+      leadId,
+      channel: "whatsapp" as const,
+      sentAt,
+      isFollowUp: false,
+      repliedAt: null,
+    });
+    const q = selectQueue({
+      front: {
+        channel: "whatsapp",
+        dailyLimit: 15,
+        weeklyTarget: 50,
+        findingPolicy: "script",
+        messageTemplate: "Oi {achado}",
+        followUpTemplate: null,
+        usesEngagement: false,
+        engagementMin: null,
+      },
+      leads: [lead("hoje"), lead("ontem")],
+      findings: [],
+      contacts: [
+        c("hoje", new Date(QUI.getTime() - 3600_000)),
+        c("ontem", new Date(QUI.getTime() - 26 * 3600_000)),
+      ],
+      channelContacts: [],
+      now: QUI,
+    });
+    expect(q.sentTodayLeads.map((l) => l.id)).toEqual(["hoje"]);
+  });
+});

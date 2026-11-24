@@ -6,6 +6,7 @@ import { STAGE_LABEL, requiresFinding, type Stage } from "@/contracts/funnel";
 import { sessaoAtual } from "@/domains/auth/session";
 import { FindingForm, ReconfirmButton } from "./finding-form";
 import { MetricsForm } from "./metrics-form";
+import { NoteForm } from "./note-form";
 import { checkEngagement } from "@/contracts/engagement";
 import { FINDING_KIND_LABEL, type FindingKind } from "@/contracts/finding";
 import { StageButtons, ContactForm, ReplyForm } from "./journey-forms";
@@ -122,6 +123,9 @@ export default async function LeadPage({ params }: Props) {
             followers={lead.followers}
             engagementPct={lead.engagementPct}
           />
+        </div>
+        <div className="mt-4 border-t border-line pt-4">
+          <NoteForm leadId={lead.id} note={lead.note} />
         </div>
       </section>
 

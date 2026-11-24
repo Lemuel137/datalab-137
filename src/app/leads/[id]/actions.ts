@@ -7,6 +7,7 @@ import { z } from "zod";
 import { db } from "@/db/client";
 import { leads } from "@/db/schema";
 import type { FindingFormState } from "@/contracts/finding";
+import { noteSchema } from "@/contracts/journey";
 
 export async function addFinding(
   _prev: FindingFormState,
@@ -75,4 +76,24 @@ export async function reconfirm(
     revalidatePath("/fila");
   }
   return { ok: r.ok, message: r.message };
+}
+
+export async function saveNote(
+  _prev: FindingFormState,
+  formData: FormData,
+): Promise<FindingFormState> {
+  const parsed = noteSchema.safeParse({
+    leadId: formData.get("leadId"),
+    note: formData.get("note") ?? "",
+  });
+  if (!parsed.success) return { ok: false, message: "Observação longa demais (até 2.000 letras)." };
+
+  await db
+    .update(leads)
+    .set({ note: parsed.data.note, updatedAt: new Date() })
+    .where(eq(leads.id, parsed.data.leadId));
+
+  revalidatePath(`/leads/${parsed.data.leadId}`);
+  revalidatePath("/fila");
+  return { ok: true, message: parsed.data.note ? "Observação salva." : "Observação apagada." };
 }

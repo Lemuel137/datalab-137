@@ -54,6 +54,8 @@ export const leads = pgTable(
     stage: text("stage").notNull().default("importado"),
     source: text("source").notNull().default("csv"),
     signals: jsonb("signals").$type<Record<string, unknown>>().notNull().default({}),
+    // Anotação livre de quem prospecta; aparece na fila e na página do lead.
+    note: text("note"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

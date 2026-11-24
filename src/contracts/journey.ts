@@ -21,3 +21,13 @@ export const replyFormSchema = z.object({
 });
 
 export type LeadActionState = { ok: boolean; message: string } | undefined;
+
+/** Anotação livre do lead (ex.: "este número é robô; ligar no fixo"). Vazio apaga. */
+export const noteSchema = z.object({
+  leadId: z.uuid(),
+  note: z
+    .string()
+    .trim()
+    .max(2000)
+    .transform((v) => v || null),
+});

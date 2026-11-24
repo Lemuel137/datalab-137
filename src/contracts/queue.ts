@@ -190,6 +190,7 @@ export type QLead = {
   followers: number | null;
   engagementPct: number | null;
   signals: Record<string, unknown>;
+  note?: string | null;
   createdAt: Date;
 };
 export type QFinding = {
@@ -269,6 +270,8 @@ export type Queue = {
   novos: QItem[];
   followUps: QItem[];
   replied: QLead[];
+  /** Leads da frente abordados hoje: é onde se anota o que voltou (robô, resposta, recusa). */
+  sentTodayLeads: QLead[];
   excluded: {
     semTexto: boolean;
     vencidos: QLead[];
@@ -422,6 +425,9 @@ export function selectQueue(i: {
     novos: eligible.slice(0, quota),
     followUps,
     replied: i.leads.filter((l) => l.stage === "respondeu"),
+    sentTodayLeads: i.leads.filter((l) =>
+      (contactsOf.get(l.id) ?? []).some((c) => spDay(c.sentAt) === today),
+    ),
     excluded,
   };
 }

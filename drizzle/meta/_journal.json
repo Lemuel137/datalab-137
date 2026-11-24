@@ -85,6 +85,13 @@
       "when": 1795500000000,
       "tag": "0011_pergunta_anuncio_parado",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1795600000000,
+      "tag": "0012_observacao_lead",
+      "breakpoints": true
     }
   ]
 }
