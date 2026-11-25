@@ -972,3 +972,32 @@ describe("achado de empresa sem anúncio no Google", () => {
     expect(checkInstruction("sem_anuncio_google")).toContain("Central de Transparência");
   });
 });
+
+describe("achado de site da ficha fora do ar", () => {
+  const f = { kind: "site_fora_do_ar", evidenceUrl: "https://exemplo.com.br/" };
+  it("a evidência é o próprio site, sem repetir o botão de abrir site", () => {
+    expect(
+      checkLinks(
+        f,
+        { ficha_maps: "https://www.google.com/maps/place/x" },
+        {
+          site: "https://exemplo.com.br/",
+        },
+      ),
+    ).toEqual([
+      { label: "abrir site da ficha", href: "https://exemplo.com.br/" },
+      { label: "abrir ficha no Maps", href: "https://www.google.com/maps/place/x" },
+    ]);
+  });
+  it("vale 3 dias e pede para abrir o site antes de enviar", () => {
+    const now = new Date("2026-11-30T12:00:00Z");
+    const at = (d: number) => ({
+      ...f,
+      origin: "script",
+      verifiedAt: new Date(now.getTime() - d * 86400_000),
+    });
+    expect(validFinding("script", [at(2)], now)).not.toBeNull();
+    expect(validFinding("script", [at(4)], now)).toBeNull();
+    expect(checkInstruction("site_fora_do_ar")).toContain("não carrega");
+  });
+});

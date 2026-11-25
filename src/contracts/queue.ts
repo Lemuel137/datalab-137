@@ -84,6 +84,8 @@ const SCRIPT_VALID_HOURS: Record<string, number> = {
   pagina_produto: 7 * 24,
   // Campanha no Google entra de um dia para o outro; a conferência do envio pega.
   sem_anuncio_google: 7 * 24,
+  // Site pode voltar a qualquer hora: validade curta, e a conferência do envio decide.
+  site_fora_do_ar: 3 * 24,
 };
 const DEFAULT_SCRIPT_VALID_HOURS = 24;
 
@@ -268,6 +270,8 @@ const CHECK_INSTRUCTION: Record<string, string> = {
     "Abra dois produtos, role até o fim e confirme que continua faltando o que o achado diz.",
   sem_anuncio_google:
     "Abra a Central de Transparência de Anúncios do Google e confirme que o site segue sem anúncio; na ficha do Maps, confira a nota.",
+  site_fora_do_ar:
+    "Abra o site que está na ficha do Maps e confirme que ele não carrega; se abrir, pule o lead.",
 };
 const CHECK_DEFAULT = "Abra a evidência e confirme que o achado continua valendo.";
 
@@ -463,6 +467,7 @@ const EVIDENCE_LABEL: Record<string, string> = {
   criativo_sem_diferencial: "ver anúncios ativos",
   pagina_produto: "abrir produto",
   sem_anuncio_google: "ver anúncios no Google",
+  site_fora_do_ar: "abrir site da ficha",
 };
 
 const isHttp = (v: unknown): v is string => typeof v === "string" && /^https?:\/\//.test(v);
